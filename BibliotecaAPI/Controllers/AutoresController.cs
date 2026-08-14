@@ -35,4 +35,18 @@ public class AutoresController : ControllerBase
         var autor = await _autorService.ObterPorIdAsync(id);
         return Ok(autor);
     }
+
+    [HttpPut("{id:int}")]
+    public async Task<ActionResult<AutorResponseDto>> Atualizar(int id, [FromBody] CriarAutorDto dto)
+    {
+        var autor = await _autorService.AtualizarAsync(id, dto);
+        return Ok(autor);
+    }
+
+    [HttpDelete("{id:int}")]
+    public async Task<ActionResult> Excluir(int id)
+    {
+        await _autorService.ExcluirAsync(id);
+        return NoContent();
+    }
 }

@@ -82,6 +82,39 @@ public class EmprestimoService : IEmprestimoService
             emprestimo.Livro?.Titulo ?? string.Empty);
     }
 
+    public async Task<IEnumerable<EmprestimoResponseDto>> ObterTodosAsync()
+    {
+        var emprestimos = await _emprestimoRepository.ObterTodosAsync();
+        
+        return emprestimos.Select(e => MapToResponseDto(
+            e, 
+            e.Aluno?.Nome ?? string.Empty, 
+            e.Livro?.Titulo ?? string.Empty));
+    }
+
+    public async Task<IEnumerable<EmprestimoResponseDto>> ObterAbertosAsync()
+    {
+        var emprestimos = await _emprestimoRepository.ObterAbertosAsync();
+        
+        return emprestimos.Select(e => MapToResponseDto(
+            e, 
+            e.Aluno?.Nome ?? string.Empty, 
+            e.Livro?.Titulo ?? string.Empty));
+    }
+
+    public async Task<IEnumerable<EmprestimoResponseDto>> ObterPorAlunoAsync(int alunoId)
+    {
+        var aluno = await _alunoRepository.ObterPorIdAsync(alunoId)
+            ?? throw new NotFoundException($"Aluno com ID {alunoId} não foi encontrado.");
+
+        var emprestimos = await _emprestimoRepository.ObterPorAlunoAsync(alunoId);
+        
+        return emprestimos.Select(e => MapToResponseDto(
+            e, 
+            e.Aluno?.Nome ?? string.Empty, 
+            e.Livro?.Titulo ?? string.Empty));
+    }
+
     private static EmprestimoResponseDto MapToResponseDto(Emprestimo e, string nomeAluno, string tituloLivro)
     {
         return new EmprestimoResponseDto

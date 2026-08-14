@@ -37,4 +37,18 @@ public class LivrosController : ControllerBase
         var livro = await _livroService.ObterPorIdAsync(id);
         return Ok(livro);
     }
+
+    [HttpPut("{id:int}")]
+    public async Task<ActionResult<LivroResponseDto>> Atualizar(int id, [FromBody] CriarLivroDto dto)
+    {
+        var livro = await _livroService.AtualizarAsync(id, dto);
+        return Ok(livro);
+    }
+
+    [HttpDelete("{id:int}")]
+    public async Task<ActionResult> Excluir(int id)
+    {
+        await _livroService.ExcluirAsync(id);
+        return NoContent();
+    }
 }

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Admin - Biblioteca</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="app-navbar">
+        <div class="navbar-brand">📚 Biblioteca API <span style="color:var(--text-muted);font-weight:400;font-size:0.9rem">| Admin Panel</span></div>
+        <div class="navbar-user">
+            <div>
+                <strong id="navbarUserName"></strong> <span id="navbarUserRole"></span>
+            </div>
+            <button class="btn btn-small" onclick="auth.logout()">Sair</button>
+        </div>
+    </nav>
+
+    <main class="app-container">
+        <!-- Global Feedback Message -->
+        <div id="globalAlert" class="alert"></div>
+
+        <div class="tabs-nav">
+            <button class="tab-btn active" data-target="tab-livros">Livros</button>
+            <button class="tab-btn" data-target="tab-autores">Autores</button>
+            <button class="tab-btn" data-target="tab-alunos">Alunos</button>
+            <button class="tab-btn" data-target="tab-emprestimos">Empréstimos</button>
+        </div>
+
+        <!-- TAB: LIVROS -->
+        <section id="tab-livros" class="tab-content active">
+            <div class="admin-card glass-effect">
+                <h2>Cadastrar Novo Livro</h2>
+                <form id="formLivro" class="form-row">
+                    <div class="form-group">
+                        <label>ISBN</label>
+                        <input type="text" id="livroIsbn" required>
+                    </div>
+                    <div class="form-group" style="flex: 2">
+                        <label>Título</label>
+                        <input type="text" id="livroTitulo" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Ano Publ.</label>
+                        <input type="number" id="livroAno" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Quantidade</label>
+                        <input type="number" id="livroQtd" min="0" required>
+                    </div>
+                    <div class="form-group" style="flex: 1.5">
+                        <label>Autor</label>
+                        <select id="livroAutor" required>
+                            <option value="">Carregando autores...</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="min-width: 120px;">
+                        <button type="submit" class="btn btn-primary btn-block" style="margin-top: 1.5rem">Salvar</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="admin-card glass-effect">
+                <h2>Livros Cadastrados</h2>
+                <div class="table-responsive">
+                    <table id="tableLivros">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Título</th>
+                                <th>Autor</th>
+                                <th>ISBN</th>
+                                <th>Ano</th>
+                                <th>Estoque</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Preenchido via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB: AUTORES -->
+        <section id="tab-autores" class="tab-content">
+            <div class="admin-card glass-effect">
+                <h2>Cadastrar Autor</h2>
+                <form id="formAutor" class="form-row">
+                    <div class="form-group" style="flex: 2">
+                        <label>Nome</label>
+                        <input type="text" id="autorNome" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Data Nascimento</label>
+                        <input type="date" id="autorNasc" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Nacionalidade</label>
+                        <input type="text" id="autorNac" required>
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary btn-block" style="margin-top: 1.5rem">Salvar</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="admin-card glass-effect">
+                <h2>Autores Cadastrados</h2>
+                <div class="table-responsive">
+                    <table id="tableAutores">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nome</th>
+                                <th>Nacionalidade</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Preenchido via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB: ALUNOS -->
+        <section id="tab-alunos" class="tab-content">
+            <div class="admin-card glass-effect">
+                <h2>Cadastrar Aluno</h2>
+                <form id="formAluno" class="form-row">
+                    <div class="form-group" style="flex: 2">
+                        <label>Nome Completo</label>
+                        <input type="text" id="alunoNome" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Matrícula</label>
+                        <input type="text" id="alunoMatricula" required>
+                    </div>
+                    <div class="form-group" style="flex: 1.5">
+                        <label>E-mail</label>
+                        <input type="email" id="alunoEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary btn-block" style="margin-top: 1.5rem">Salvar</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="admin-card glass-effect">
+                <h2>Alunos Cadastrados</h2>
+                <div class="table-responsive">
+                    <table id="tableAlunos">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nome</th>
+                                <th>Matrícula</th>
+                                <th>E-mail</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Preenchido via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB: EMPRÉSTIMOS -->
+        <section id="tab-emprestimos" class="tab-content">
+            <div class="admin-card glass-effect">
+                <h2>Novo Empréstimo</h2>
+                <form id="formEmprestimo" class="form-row">
+                    <div class="form-group" style="flex: 1">
+                        <label>ID Aluno</label>
+                        <input type="number" id="empAlunoId" placeholder="Ex: 1" required>
+                    </div>
+                    <div class="form-group" style="flex: 2">
+                        <label>Livro</label>
+                        <select id="empLivroId" required>
+                            <option value="">Carregando livros...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Data Prevista Devolução</label>
+                        <input type="date" id="empDataDev" required>
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary btn-block" style="margin-top: 1.5rem">Emprestar</button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="admin-card glass-effect">
+                <h2>Devolver Empréstimo</h2>
+                <form id="formDevolucao" class="form-row" style="align-items: center">
+                    <div class="form-group">
+                        <label>ID do Empréstimo</label>
+                        <input type="number" id="devEmpId" required placeholder="ID do empréstimo para devolver">
+                    </div>
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-warning" style="margin-top: 0.5rem">Registrar Devolução</button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="admin-card glass-effect">
+                <h2>Empréstimos em Aberto</h2>
+                <div style="margin-bottom: 1.5rem;">
+                    <input type="text" id="buscaEmprestimo" class="form-group" style="width: 100%; margin: 0; padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);" placeholder="Buscar por nome do aluno ou título do livro...">
+                </div>
+                <div class="table-responsive">
+                    <table id="tableEmprestimosAbertos">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Aluno</th>
+                                <th>Livro</th>
+                                <th>Devolução Prevista</th>
+                                <th>Status</th>
+                                <th>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Preenchido via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="admin-card glass-effect" style="margin-top: 2rem;">
+                <h2>Histórico de Todos os Empréstimos</h2>
+                <div class="table-responsive">
+                    <table id="tableEmprestimosHistorico">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Aluno</th>
+                                <th>Livro</th>
+                                <th>Data Empréstimo</th>
+                                <th>Devolução Efetiva</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Preenchido via JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal de Edição Genérico -->
+    <dialog id="editModal" class="glass-effect" style="border: none; border-radius: var(--radius-lg); padding: 2rem; max-width: 500px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); background: var(--card-bg); color: var(--text-color);">
+        <h2 id="editModalTitle" style="margin-bottom: 1rem;">Editar</h2>
+        <form id="editForm">
+            <div id="editModalFields">
+                <!-- Campos injetados via JS -->
+            </div>
+            <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                <button type="button" class="btn btn-warning" id="closeEditModal" style="flex: 1;">Cancelar</button>
+                <button type="submit" class="btn btn-primary" style="flex: 1;">Salvar Alterações</button>
+            </div>
+        </form>
+    </dialog>
+
+    <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>

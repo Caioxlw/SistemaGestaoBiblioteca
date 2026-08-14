@@ -75,4 +75,41 @@ public class LivroService : ILivroService
             NomeAutor = autor.Nome
         };
     }
+
+    public async Task<LivroResponseDto> AtualizarAsync(int id, CriarLivroDto dto)
+    {
+        var livro = await _livroRepository.ObterPorIdAsync(id)
+            ?? throw new NotFoundException($"Livro com ID {id} não encontrado.");
+
+        var autor = await _autorRepository.ObterPorIdAsync(dto.AutorId)
+            ?? throw new NotFoundException($"Autor com ID {dto.AutorId} não encontrado.");
+
+        livro.Titulo = dto.Titulo;
+        livro.Isbn = dto.Isbn;
+        livro.AnoPublicacao = dto.AnoPublicacao;
+        livro.Quantidade = dto.Quantidade;
+        livro.AutorId = dto.AutorId;
+        livro.Autor = autor;
+
+        await _livroRepository.AtualizarAsync(livro);
+
+        return new LivroResponseDto
+        {
+            Id = livro.Id,
+            Titulo = livro.Titulo,
+            Isbn = livro.Isbn,
+            AnoPublicacao = livro.AnoPublicacao,
+            Quantidade = livro.Quantidade,
+            AutorId = livro.AutorId,
+            NomeAutor = autor.Nome
+        };
+    }
+
+    public async Task ExcluirAsync(int id)
+    {
+        var livro = await _livroRepository.ObterPorIdAsync(id)
+            ?? throw new NotFoundException($"Livro com ID {id} não encontrado.");
+            
+        await _livroRepository.ExcluirAsync(id);
+    }
 }

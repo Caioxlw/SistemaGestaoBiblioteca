@@ -40,4 +40,14 @@ public class LivroRepository : ILivroRepository
         _context.Livros.Update(livro);
         await _context.SaveChangesAsync();
     }
+
+    public async Task ExcluirAsync(int id)
+    {
+        var livro = await ObterPorIdAsync(id);
+        if (livro != null)
+        {
+            _context.Livros.Remove(livro);
+            await _context.SaveChangesAsync();
+        }
+    }
 }

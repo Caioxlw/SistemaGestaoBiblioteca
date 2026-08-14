@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel do Aluno - Biblioteca</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="app-navbar">
+        <div class="navbar-brand">📚 Biblioteca <span style="color:var(--text-muted);font-weight:400;font-size:0.9rem">| Área do Aluno</span></div>
+        <div class="navbar-user">
+            <div>
+                <strong id="navbarUserName"></strong> <span id="navbarUserRole"></span>
+            </div>
+            <button class="btn btn-small" onclick="auth.logout()">Sair</button>
+        </div>
+    </nav>
+
+    <main class="app-container">
+        <!-- Global Feedback Message -->
+        <div id="globalAlert" class="alert"></div>
+
+        <div class="tabs-nav">
+            <button class="tab-btn active" data-target="tab-catalogo">Catálogo de Livros</button>
+            <button class="tab-btn" data-target="tab-meus-emprestimos">Meus Empréstimos</button>
+        </div>
+
+        <!-- TAB: CATÁLOGO -->
+        <section id="tab-catalogo" class="tab-content active">
+            <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+                <input type="text" id="buscaTitulo" class="form-group" style="margin: 0; padding: 0.75rem; flex: 1; border-radius: var(--radius-md); border: 1px solid var(--border-color);" placeholder="Buscar por título...">
+                <input type="text" id="buscaAutor" class="form-group" style="margin: 0; padding: 0.75rem; flex: 1; border-radius: var(--radius-md); border: 1px solid var(--border-color);" placeholder="Buscar por autor...">
+                <button id="btnBuscar" class="btn btn-primary">Buscar</button>
+            </div>
+
+            <div id="loader" class="loader"></div>
+            
+            <div id="livrosGrid" class="books-grid">
+                <!-- Preenchido via JS -->
+            </div>
+        </section>
+
+        <!-- TAB: MEUS EMPRÉSTIMOS -->
+        <section id="tab-meus-emprestimos" class="tab-content">
+            <div class="admin-card glass-effect">
+                <h2>Meus Livros</h2>
+                
+                <div id="emprestimosList">
+                    <!-- Preenchido via JS -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script src="js/auth.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/usuario.js"></script>
+</body>
+</html>

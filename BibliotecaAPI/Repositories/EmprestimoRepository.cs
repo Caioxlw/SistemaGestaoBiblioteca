@@ -25,6 +25,29 @@ public class EmprestimoRepository : IEmprestimoRepository
                            e.LivroId == livroId && 
                            e.Status == StatusEmprestimo.Ativo);
 
+    public async Task<IEnumerable<Emprestimo>> ObterTodosAsync() =>
+        await _context.Emprestimos
+            .Include(e => e.Livro)
+            .Include(e => e.Aluno)
+            .OrderByDescending(e => e.DataEmprestimo)
+            .ToListAsync();
+
+    public async Task<IEnumerable<Emprestimo>> ObterAbertosAsync() =>
+        await _context.Emprestimos
+            .Include(e => e.Livro)
+            .Include(e => e.Aluno)
+            .Where(e => e.Status == StatusEmprestimo.Ativo)
+            .OrderBy(e => e.DataPrevistaDevolucao)
+            .ToListAsync();
+
+    public async Task<IEnumerable<Emprestimo>> ObterPorAlunoAsync(int alunoId) =>
+        await _context.Emprestimos
+            .Include(e => e.Livro)
+            .Include(e => e.Aluno)
+            .Where(e => e.AlunoId == alunoId)
+            .OrderByDescending(e => e.DataEmprestimo)
+            .ToListAsync();
+
     public async Task AdicionarAsync(Emprestimo emprestimo)
     {
         await _context.Emprestimos.AddAsync(emprestimo);
