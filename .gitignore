@@ -1,2 +1,5 @@
 **/[Bb]in/
 **/[Oo]bj/
+*.db
+*.mdf
+*.sqlite
