@@ -12,7 +12,8 @@ builder.Services.AddDbContext<BibliotecaDbContext>(options =>
     options.UseSqlite(connectionString));
 
 builder.Services.AddControllers();
-builder.Services.AddOpenApi();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 // Injeção de Dependência - Repositories
 builder.Services.AddScoped<IAutorRepository, AutorRepository>();
@@ -34,7 +35,8 @@ app.UseMiddleware<ErrorHandlingMiddleware>();
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
-    app.MapOpenApi();
+    app.UseSwagger();
+    app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
