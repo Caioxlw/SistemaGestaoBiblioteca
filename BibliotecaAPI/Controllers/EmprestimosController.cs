@@ -22,6 +22,27 @@ public class EmprestimosController : ControllerBase
         return StatusCode(201, emprestimo);
     }
 
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<EmprestimoResponseDto>>> ObterTodos()
+    {
+        var emprestimos = await _emprestimoService.ObterTodosAsync();
+        return Ok(emprestimos);
+    }
+
+    [HttpGet("abertos")]
+    public async Task<ActionResult<IEnumerable<EmprestimoResponseDto>>> ObterAbertos()
+    {
+        var emprestimos = await _emprestimoService.ObterAbertosAsync();
+        return Ok(emprestimos);
+    }
+
+    [HttpGet("aluno/{alunoId:int}")]
+    public async Task<ActionResult<IEnumerable<EmprestimoResponseDto>>> ObterPorAluno(int alunoId)
+    {
+        var emprestimos = await _emprestimoService.ObterPorAlunoAsync(alunoId);
+        return Ok(emprestimos);
+    }
+
     [HttpPut("{id:int}/devolucao")]
     public async Task<ActionResult<EmprestimoResponseDto>> Devolucao(int id)
     {

@@ -8,4 +8,5 @@ public interface ILivroRepository
     Task<Livro?> ObterPorIdAsync(int id);
     Task AdicionarAsync(Livro livro);
     Task AtualizarAsync(Livro livro);
+    Task ExcluirAsync(int id);
 }

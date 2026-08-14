@@ -21,4 +21,25 @@ public class AlunosController : ControllerBase
         var aluno = await _alunoService.CriarAsync(dto);
         return StatusCode(201, aluno);
     }
+
+    [HttpGet]
+    public async Task<ActionResult<IEnumerable<AlunoResponseDto>>> ObterTodos()
+    {
+        var alunos = await _alunoService.ObterTodosAsync();
+        return Ok(alunos);
+    }
+
+    [HttpPut("{id:int}")]
+    public async Task<ActionResult<AlunoResponseDto>> Atualizar(int id, [FromBody] CriarAlunoDto dto)
+    {
+        var aluno = await _alunoService.AtualizarAsync(id, dto);
+        return Ok(aluno);
+    }
+
+    [HttpDelete("{id:int}")]
+    public async Task<ActionResult> Excluir(int id)
+    {
+        await _alunoService.ExcluirAsync(id);
+        return NoContent();
+    }
 }

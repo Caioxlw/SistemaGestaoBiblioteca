@@ -24,4 +24,20 @@ public class AutorRepository : IAutorRepository
         await _context.Autores.AddAsync(autor);
         await _context.SaveChangesAsync();
     }
+
+    public async Task AtualizarAsync(Autor autor)
+    {
+        _context.Autores.Update(autor);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task ExcluirAsync(int id)
+    {
+        var autor = await ObterPorIdAsync(id);
+        if (autor != null)
+        {
+            _context.Autores.Remove(autor);
+            await _context.SaveChangesAsync();
+        }
+    }
 }
