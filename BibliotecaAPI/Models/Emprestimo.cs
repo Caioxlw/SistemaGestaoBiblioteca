@@ -9,6 +9,7 @@ public enum StatusEmprestimo
 public class Emprestimo
 {
     public int Id {get; set;}
+    public int AlunoId {get; set;}
     public Aluno? Aluno {get; set;}
     public int LivroId {get; set;}
     public Livro? Livro {get; set;}
