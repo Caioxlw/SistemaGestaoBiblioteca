@@ -39,12 +39,35 @@ O projeto adota uma arquitetura em camadas focada em separação de responsabili
    ```bash
    dotnet ef database update
    ```
-3. **Executar a API:**
+3. **Executar a API (Backend):**
    ```bash
+   cd backend
    dotnet run
    ```
 4. **Acessar a documentação interativa:**
    Abra seu navegador e acesse a URL fornecida no terminal adicionando `/swagger` ao final. Exemplo: `http://localhost:5207/swagger`.
+
+### Como rodar o Frontend
+
+O projeto também possui uma interface web. Para rodá-la:
+1. Abra um novo terminal e entre na pasta do frontend:
+   ```bash
+   cd frontend
+   ```
+2. Instale as dependências (se ainda não o fez) e inicie o servidor:
+   ```bash
+   npm install
+   npm run dev
+   ```
+*(Alternativamente, se não possuir o Node.js/npm, você pode rodar o `index.html` utilizando a extensão **Live Server** do VS Code).*
+
+### Como rodar os Testes Unitários
+
+O projeto possui testes unitários simulando a camada de persistência. Para executá-los:
+1. Volte para a raiz do projeto (ou entre na pasta de testes) e rode:
+   ```bash
+   dotnet test tests/backend.Tests
+   ```
 
 ## 📊 Modelo de Dados
 
