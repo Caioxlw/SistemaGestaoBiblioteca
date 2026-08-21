@@ -29,6 +29,12 @@ Como o "coração" das regras de negócio reside no processo de empréstimo, a m
 - **Controller (`AutorControllerTests.cs`)**:
   - Garante a resposta `201 Created` na criação bem-sucedida.
 
+### 4. Entidade Livro
+- **Service (`LivroServiceTests.cs`)**:
+  - Foco na validação básica para garantir que não seja possível cadastrar um livro com um Autor que não existe, lançando `NotFoundException`.
+- **Controller (`LivroControllerTests.cs`)**:
+  - Garante a resposta `201 Created` na criação bem-sucedida, retornando o DTO corretamente mapeado.
+
 ## Foco e Limitações
 Foi adotada uma abordagem **minimalista e direta**. Em vez de nos estendermos testando todos os métodos de leitura (GETs básicos) e atualizações padronizadas para cada Controller e Service, optamos por focar estritamente nas regras que, se violadas, comprometeriam a confiabilidade do sistema (como estoques furados, matrículas duplicadas). 
 
