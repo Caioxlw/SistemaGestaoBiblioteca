@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/backend/">
+    <Project Path="backend/SistemaGestaoBiblioteca.csproj" />
+  </Folder>
+  <Project Path="SistemaGestaoBiblioteca.Tests/SistemaGestaoBiblioteca.Tests.csproj" />
+</Solution>
