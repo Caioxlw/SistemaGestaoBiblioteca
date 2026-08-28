@@ -3,7 +3,11 @@
  * Módulo responsável pela comunicação via fetch com a API REST backend.
  */
 
-const API_BASE_URL = "http://localhost:5274/api"; // URL base do backend C# (Ajuste se necessário)
+// Em Docker: URL relativa (nginx faz proxy reverso para o container da API)
+// Em desenvolvimento local sem Docker: troque para "http://localhost:5274/api"
+const API_BASE_URL = window.location.hostname === 'localhost' && window.location.port === ''
+    ? "/api"
+    : (window.location.port === '3000' ? "/api" : "http://localhost:5274/api");
 
 const api = {
     async request(endpoint, method = 'GET', body = null) {

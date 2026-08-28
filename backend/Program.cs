@@ -6,10 +6,10 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configuração do DbContext com SQLite
+// Configuração do DbContext com PostgreSQL
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 builder.Services.AddDbContext<BibliotecaDbContext>(options => 
-    options.UseSqlite(connectionString));
+    options.UseNpgsql(connectionString));
 
 builder.Services.AddCors(options =>
 {
@@ -40,6 +40,13 @@ builder.Services.AddScoped<IEmprestimoService, EmprestimoService>();
 
 var app = builder.Build();
 
+// Aplica as migrations automaticamente ao iniciar (essencial no Docker)
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<BibliotecaDbContext>();
+    db.Database.Migrate();
+}
+
 // Middleware Global de Tratamento de Erros
 app.UseMiddleware<ErrorHandlingMiddleware>();
 
@@ -49,8 +56,6 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
-
-app.UseHttpsRedirection();
 
 app.UseCors("AllowAll");
 
