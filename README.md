@@ -61,6 +61,36 @@ O projeto também possui uma interface web. Para rodá-la:
    ```
 *(Alternativamente, se não possuir o Node.js/npm, você pode rodar o `index.html` utilizando a extensão **Live Server** do VS Code).*
 
+### 🐳 Como rodar com Docker (Recomendado)
+
+Se preferir rodar tudo de forma isolada usando containers:
+
+#### Pré-requisitos
+- [Docker](https://www.docker.com/) e Docker Compose instalados.
+
+#### Subir todo o sistema
+```bash
+docker compose up --build
+```
+
+#### Acessar
+- **Frontend:** http://localhost:3000
+- **API (Swagger):** http://localhost:8080/swagger
+- **PostgreSQL:** localhost:5432 (user: `user` / password: `password`)
+
+#### Parar os containers
+```bash
+docker compose down
+```
+
+#### Resetar o banco de dados
+```bash
+docker compose down -v
+docker compose up --build
+```
+
+> **Nota:** Ao rodar com Docker, o banco de dados utilizado é o **PostgreSQL** (em vez do SQLite local). Os dados persistem entre reinícios graças ao volume `db-data`. Use `docker compose down -v` para apagar o volume e recomeçar do zero.
+
 ### Como rodar os Testes Unitários
 
 O projeto possui testes unitários simulando a camada de persistência. Para executá-los:
