@@ -38,6 +38,21 @@ document.addEventListener('DOMContentLoaded', () => {
     atualizarBadgeNotificacoes();
 });
 
+// Helper: Formatação de Data Brasileira segura contra Timezone Shift
+function formatarDataBR(dataStr) {
+    if (!dataStr) return '-';
+    if (typeof dataStr === 'string' && dataStr.includes('-')) {
+        const [datePart] = dataStr.split('T');
+        const partes = datePart.split('-');
+        if (partes.length === 3) {
+            const [ano, mes, dia] = partes;
+            return `${dia}/${mes}/${ano}`;
+        }
+    }
+    const d = new Date(dataStr);
+    return isNaN(d.getTime()) ? '-' : d.toLocaleDateString('pt-BR');
+}
+
 // Helper: Debounce
 function debounce(func, wait) {
     let timeout;
@@ -126,29 +141,38 @@ async function reservar(livroId) {
 
 // =================== MEUS EMPRÉSTIMOS ===================
 async function carregarMeusEmprestimos() {
+    const tbody = document.querySelector('#tabelaMeusEmprestimos tbody');
+    tbody.innerHTML = '';
     document.getElementById('loaderEmprestimos').style.display = 'flex';
+    
     try {
         const user = auth.getUser();
+        if (!user || !user.alunoId) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">Nenhum perfil de aluno vinculado a esta conta.</td></tr>';
+            return;
+        }
+
         const emprestimos = await api.get(`emprestimos/aluno/${user.alunoId}`);
-        const tbody = document.querySelector('#tabelaMeusEmprestimos tbody');
         tbody.innerHTML = '';
         
-        if (emprestimos.length === 0) {
+        if (!emprestimos || emprestimos.length === 0) {
             tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">Nenhum empréstimo encontrado.</td></tr>';
         } else {
             emprestimos.forEach(e => {
                 const statusBadge = e.status === 'Ativo' ? 
-                    (e.diasAtraso > 0 ? `<span class="badge badge-danger">Atrasado</span>` : '<span class="badge badge-warning">Ativo</span>') : 
+                    (e.diasAtraso > 0 ? `<span class="badge badge-danger">Atrasado (${e.diasAtraso}d)</span>` : '<span class="badge badge-warning">Ativo</span>') : 
                     '<span class="badge badge-success">Devolvido</span>';
                 
-                const multaStr = e.multa > 0 ? `<strong style="color:var(--danger)">R$ ${e.multa.toFixed(2)}</strong>` : '-';
-                const devolucaoStr = e.dataDevolucao ? new Date(e.dataDevolucao).toLocaleDateString() : '-';
+                const multaStr = (e.multa && e.multa > 0) ? `<strong style="color:var(--danger)">R$ ${Number(e.multa).toFixed(2)}</strong>` : '-';
+                const devolucaoStr = e.dataDevolucao ? formatarDataBR(e.dataDevolucao) : '-';
+                const dataEmpStr = formatarDataBR(e.dataEmprestimo);
+                const dataPrevStr = formatarDataBR(e.dataPrevistaDevolucao);
 
                 tbody.innerHTML += `
                     <tr>
-                        <td><strong>${e.tituloLivro}</strong></td>
-                        <td>${new Date(e.dataEmprestimo).toLocaleDateString()}</td>
-                        <td>${new Date(e.dataPrevistaDevolucao).toLocaleDateString()}</td>
+                        <td><strong>${e.tituloLivro || 'Livro sem título'}</strong></td>
+                        <td>${dataEmpStr}</td>
+                        <td>${dataPrevStr}</td>
                         <td>${devolucaoStr}</td>
                         <td>${statusBadge}</td>
                         <td>${multaStr}</td>
@@ -156,6 +180,7 @@ async function carregarMeusEmprestimos() {
             });
         }
     } catch (e) { 
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--danger)">Erro ao carregar empréstimos: ${e.message}</td></tr>`;
         mostrarAlerta(e.message, 'error'); 
     } finally {
         document.getElementById('loaderEmprestimos').style.display = 'none';
