@@ -10,5 +10,7 @@ public class EmprestimoResponseDto
     public DateTime DataEmprestimo { get; set; }
     public DateTime DataPrevistaDevolucao { get; set; }
     public DateTime? DataDevolucao { get; set; }
+    public int DiasAtraso { get; set; }
+    public decimal Multa { get; set; }
     public string Status { get; set; } = string.Empty;
 }
