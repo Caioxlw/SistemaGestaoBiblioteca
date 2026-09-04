@@ -3,58 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Biblioteca</title>
+    <title>SmartLib - Login</title>
     <link rel="stylesheet" href="css/style.css">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;800&display=swap" rel="stylesheet">
 </head>
 <body class="login-body">
     <div class="login-container glass-effect">
         <div class="login-header">
-            <h1>📚 Biblioteca API</h1>
-            <p>Faça login para continuar</p>
+            <h1>SmartLib</h1>
+            <p>Plataforma Inteligente de Gestão de Biblioteca</p>
         </div>
         <form id="loginForm">
             <div class="form-group">
-                <label for="username">Usuário</label>
-                <input type="text" id="username" placeholder="admin ou aluno" required autocomplete="off">
+                <label for="email">E-mail</label>
+                <input type="email" id="email" placeholder="admin@smartlib.com" required autocomplete="email">
             </div>
             <div class="form-group">
                 <label for="password">Senha</label>
-                <input type="password" id="password" placeholder="admin123 ou aluno123" required autocomplete="off">
+                <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
             </div>
-            <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+            <button type="submit" class="btn btn-primary btn-block" id="btnLogin">
+                <span id="btnText">Acessar Plataforma</span>
+            </button>
             <div id="loginError" class="error-msg" style="display: none;"></div>
         </form>
         <div class="login-hints">
-            <p><strong>Admin:</strong> admin / admin123</p>
-            <p><strong>Aluno:</strong> aluno / aluno123</p>
+            <p><strong>Admin:</strong> admin@smartlib.com / Admin@123</p>
+            <p><strong>Bibliotecário:</strong> biblio@smartlib.com / Biblio@123</p>
+            <p><strong>Aluno:</strong> aluno@smartlib.com / Aluno@123</p>
         </div>
     </div>
     
+    <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
     <script>
-        document.getElementById('loginForm').addEventListener('submit', function(e) {
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const user = document.getElementById('username').value.trim();
+            const email = document.getElementById('email').value.trim();
             const pass = document.getElementById('password').value.trim();
-            
+            const btn = document.getElementById('btnLogin');
+            const btnText = document.getElementById('btnText');
             const errorDiv = document.getElementById('loginError');
+            
             errorDiv.style.display = 'none';
+            btn.disabled = true;
+            btnText.textContent = 'Autenticando...';
 
-            if (auth.login(user, pass)) {
-                if (auth.getProfile() === 'admin') {
+            const success = await auth.login(email, pass);
+            
+            if (success) {
+                const profile = auth.getProfile();
+                if (profile === 'Admin' || profile === 'Bibliotecario') {
                     window.location.href = 'admin.html';
                 } else {
                     window.location.href = 'usuario.html';
                 }
             } else {
-                errorDiv.textContent = 'Usuário ou senha incorretos.';
+                errorDiv.textContent = 'E-mail ou senha incorretos.';
                 errorDiv.style.display = 'block';
-                // Adiciona animação de erro
                 const container = document.querySelector('.login-container');
                 container.classList.add('shake');
-                setTimeout(() => container.classList.remove('shake'), 500);
+                setTimeout(() => container.classList.remove('shake'), 400);
+                btn.disabled = false;
+                btnText.textContent = 'Acessar Plataforma';
             }
         });
     </script>

@@ -1,68 +1,69 @@
-/**
- * auth.js
- * Módulo responsável pela autenticação mockada (sem JWT real)
- * Valida os usuários no client-side e gerencia o sessionStorage.
- */
-
 const auth = {
-    // Lista mockada de usuários
-    users: {
-        'admin': { password: 'admin123', role: 'admin', nome: 'Administrador do Sistema' },
-        'aluno': { password: 'aluno123', role: 'aluno', nome: 'Aluno Padrão', alunoId: 1 } // Simulando que é o aluno ID 1
-    },
-
-    login(username, password) {
-        const user = this.users[username];
-        if (user && user.password === password) {
-            const sessionData = {
-                username: username,
-                role: user.role,
-                nome: user.nome,
-                alunoId: user.alunoId || null
-            };
-            sessionStorage.setItem('session', JSON.stringify(sessionData));
-            return true;
+    // Agora chama a API real
+    async login(email, password) {
+        try {
+            const result = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, senha: password })
+            });
+            
+            if (result.ok) {
+                const data = await result.json();
+                sessionStorage.setItem('token', data.token);
+                sessionStorage.setItem('user', JSON.stringify({
+                    id: data.userId,
+                    nome: data.nome,
+                    email: data.email,
+                    perfil: data.perfil,
+                    alunoId: data.alunoId
+                }));
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error("Erro no login:", error);
+            return false;
         }
-        return false;
     },
 
     logout() {
-        sessionStorage.removeItem('session');
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
         window.location.href = 'index.html';
     },
 
-    getSession() {
-        const session = sessionStorage.getItem('session');
-        return session ? JSON.parse(session) : null;
-    },
+    checkAuth(requiredProfile = null) {
+        const token = sessionStorage.getItem('token');
+        const userStr = sessionStorage.getItem('user');
 
-    getProfile() {
-        const session = this.getSession();
-        return session ? session.role : null;
-    },
-
-    requireAuth(allowedRole = null) {
-        const session = this.getSession();
-        if (!session) {
+        if (!token || !userStr) {
             window.location.href = 'index.html';
             return;
         }
-        
-        if (allowedRole && session.role !== allowedRole) {
-            // Se tentar acessar página que não tem permissão, volta para login
-            this.logout();
+
+        const user = JSON.parse(userStr);
+
+        if (requiredProfile) {
+            if (Array.isArray(requiredProfile)) {
+                if (!requiredProfile.includes(user.perfil)) {
+                    window.location.href = 'index.html';
+                }
+            } else if (user.perfil !== requiredProfile) {
+                window.location.href = 'index.html';
+            }
         }
         
-        return session;
+        return user;
     },
-    
-    renderUserInfo() {
-        const session = this.getSession();
-        if (session) {
-            const userNameEl = document.getElementById('navbarUserName');
-            const userRoleEl = document.getElementById('navbarUserRole');
-            if(userNameEl) userNameEl.textContent = session.nome;
-            if(userRoleEl) userRoleEl.textContent = session.role === 'admin' ? '(Administrador)' : '(Aluno)';
-        }
+
+    getUser() {
+        const userStr = sessionStorage.getItem('user');
+        return userStr ? JSON.parse(userStr) : null;
+    },
+
+    getProfile() {
+        const user = this.getUser();
+        return user ? user.perfil : null;
     }
 };

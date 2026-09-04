@@ -1,11 +1,15 @@
 using BibliotecaAPI.DTOs;
 using BibliotecaAPI.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace BibliotecaAPI.Controllers;
 
 [ApiController]
 [Route("api/alunos")]
+[Authorize(Roles = "Admin,Bibliotecario")]
 public class AlunosController : ControllerBase
 {
     private readonly IAlunoService _alunoService;
@@ -37,6 +41,7 @@ public class AlunosController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult> Excluir(int id)
     {
         await _alunoService.ExcluirAsync(id);

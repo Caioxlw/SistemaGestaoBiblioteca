@@ -1,18 +1,34 @@
 using BibliotecaAPI.DTOs;
 using BibliotecaAPI.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Threading.Tasks;
 
 namespace BibliotecaAPI.Controllers;
 
 [ApiController]
 [Route("api/livros")]
+[Authorize(Roles = "Admin,Bibliotecario")]
 public class LivrosController : ControllerBase
 {
     private readonly ILivroService _livroService;
+    private readonly IDashboardService _dashboardService;
 
-    public LivrosController(ILivroService livroService)
+    public LivrosController(ILivroService livroService, IDashboardService dashboardService)
     {
         _livroService = livroService;
+        _dashboardService = dashboardService;
+    }
+
+    /// <summary>
+    /// Endpoint oficial de Livros Populares com Cache-Aside (Redis).
+    /// </summary>
+    [HttpGet("populares")]
+    [AllowAnonymous]
+    public async Task<ActionResult<IEnumerable<RelatorioPopularDto>>> ObterPopulares()
+    {
+        var populares = await _dashboardService.ObterLivrosMaisPopularesAsync();
+        return Ok(populares);
     }
 
     [HttpPost]
@@ -23,15 +39,18 @@ public class LivrosController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<ActionResult<IEnumerable<LivroResponseDto>>> ObterTodos(
-        [FromQuery] string? titulo, 
-        [FromQuery] string? autor)
+    [AllowAnonymous]
+    public async Task<ActionResult<PagedResult<LivroResponseDto>>> ObterTodos(
+        [FromQuery] string? termo, 
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10)
     {
-        var livros = await _livroService.ObterTodosAsync(titulo, autor);
-        return Ok(livros);
+        var resultado = await _livroService.ObterTodosAsync(termo, page, pageSize);
+        return Ok(resultado);
     }
 
     [HttpGet("{id:int}")]
+    [AllowAnonymous]
     public async Task<ActionResult<LivroResponseDto>> ObterPorId(int id)
     {
         var livro = await _livroService.ObterPorIdAsync(id);

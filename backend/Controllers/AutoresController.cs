@@ -1,11 +1,15 @@
 using BibliotecaAPI.DTOs;
 using BibliotecaAPI.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace BibliotecaAPI.Controllers;
 
 [ApiController]
 [Route("api/autores")]
+[Authorize(Roles = "Admin,Bibliotecario")]
 public class AutoresController : ControllerBase
 {
     private readonly IAutorService _autorService;
@@ -23,6 +27,7 @@ public class AutoresController : ControllerBase
     }
 
     [HttpGet]
+    [AllowAnonymous]
     public async Task<ActionResult<IEnumerable<AutorResponseDto>>> ObterTodos()
     {
         var autores = await _autorService.ObterTodosAsync();
@@ -30,6 +35,7 @@ public class AutoresController : ControllerBase
     }
 
     [HttpGet("{id:int}")]
+    [AllowAnonymous]
     public async Task<ActionResult<AutorResponseDto>> ObterPorId(int id)
     {
         var autor = await _autorService.ObterPorIdAsync(id);
@@ -44,6 +50,7 @@ public class AutoresController : ControllerBase
     }
 
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult> Excluir(int id)
     {
         await _autorService.ExcluirAsync(id);

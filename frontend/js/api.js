@@ -1,84 +1,77 @@
-/**
- * api.js
- * Módulo responsável pela comunicação via fetch com a API REST backend.
- */
-
-// Em Docker: URL relativa (nginx faz proxy reverso para o container da API)
-// Em desenvolvimento local sem Docker: troque para "http://localhost:5274/api"
-const API_BASE_URL = window.location.hostname === 'localhost' && window.location.port === ''
-    ? "/api"
-    : (window.location.port === '3000' ? "/api" : "http://localhost:5274/api");
-
 const api = {
-    async request(endpoint, method = 'GET', body = null) {
-        const headers = {
-            'Content-Type': 'application/json'
+    baseUrl: '/api',
+
+    // Helper para adicionar o header de Authorization
+    getHeaders: () => {
+        const token = sessionStorage.getItem('token');
+        return {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
         };
-
-        const config = {
-            method,
-            headers,
-        };
-
-        if (body) {
-            config.body = JSON.stringify(body);
-        }
-
-        try {
-            const response = await fetch(`${API_BASE_URL}${endpoint}`, config);
-            
-            // Trata as respostas vazias (ex: 204 No Content ou se o body for nulo)
-            const isJson = response.headers.get('content-type')?.includes('application/json');
-            const data = isJson ? await response.json() : null;
-
-            if (!response.ok) {
-                // Monta o objeto de erro baseado no ProblemDetails retornado pela API
-                const errorMessage = data?.detail || data?.title || 'Erro desconhecido na API';
-                throw { status: response.status, message: errorMessage };
-            }
-
-            return data;
-        } catch (error) {
-            // Se for erro da rede (fetch failed) não terá status
-            if (!error.status) {
-                console.error("Network Error:", error);
-                throw { status: 0, message: "Não foi possível conectar ao servidor. Verifique se a API está rodando." };
-            }
-            throw error;
-        }
     },
 
-    // --- AUTORES ---
-    async getAutores() { return this.request('/autores'); },
-    async getAutor(id) { return this.request(`/autores/${id}`); },
-    async criarAutor(autorDto) { return this.request('/autores', 'POST', autorDto); },
-    async atualizarAutor(id, autorDto) { return this.request(`/autores/${id}`, 'PUT', autorDto); },
-    async excluirAutor(id) { return this.request(`/autores/${id}`, 'DELETE'); },
-
-    // --- LIVROS ---
-    async getLivros(titulo = '', autorId = '') {
-        const queryParams = new URLSearchParams();
-        if (titulo) queryParams.append('titulo', titulo);
-        if (autorId) queryParams.append('autorId', autorId); // Backend espera int? autorId, mas passa query param
-        
-        const qs = queryParams.toString() ? `?${queryParams.toString()}` : '';
-        return this.request(`/livros${qs}`);
+    // Tratamento unificado de erros
+    handleResponse: async (response) => {
+        if (response.status === 401) {
+            // Token expirado ou inválido
+            sessionStorage.removeItem('token');
+            sessionStorage.removeItem('user');
+            window.location.href = 'index.html';
+            return null;
+        }
+        if (!response.ok) {
+            let errorMsg = 'Erro na requisição';
+            try {
+                const data = await response.json();
+                if (data.errors && typeof data.errors === 'object') {
+                    const errorList = Object.values(data.errors).flat();
+                    errorMsg = errorList.join('\n') || data.detail || data.title || errorMsg;
+                } else {
+                    errorMsg = data.detail || data.message || data.title || errorMsg;
+                }
+            } catch (e) {
+                errorMsg = response.statusText || errorMsg;
+            }
+            throw new Error(errorMsg);
+        }
+        // Retorna null para 204 No Content, ou o JSON para o resto
+        return response.status === 204 ? null : await response.json();
     },
-    async getLivro(id) { return this.request(`/livros/${id}`); },
-    async criarLivro(livroDto) { return this.request('/livros', 'POST', livroDto); },
-    async atualizarLivro(id, livroDto) { return this.request(`/livros/${id}`, 'PUT', livroDto); },
-    async excluirLivro(id) { return this.request(`/livros/${id}`, 'DELETE'); },
 
-    // --- ALUNOS ---
-    async getAlunos() { return this.request('/alunos'); },
-    async criarAluno(alunoDto) { return this.request('/alunos', 'POST', alunoDto); },
-    async atualizarAluno(id, alunoDto) { return this.request(`/alunos/${id}`, 'PUT', alunoDto); },
-    async excluirAluno(id) { return this.request(`/alunos/${id}`, 'DELETE'); },
+    async get(endpoint, params = {}) {
+        const url = new URL(`${this.baseUrl}/${endpoint}`, window.location.origin);
+        Object.keys(params).forEach(key => {
+            if (params[key] !== undefined && params[key] !== null && params[key] !== '') {
+                url.searchParams.append(key, params[key]);
+            }
+        });
+        const response = await fetch(url, { headers: this.getHeaders() });
+        return this.handleResponse(response);
+    },
 
-    // --- EMPRÉSTIMOS ---
-    async getTodosEmprestimos() { return this.request('/emprestimos'); },
-    async getEmprestimosAbertos() { return this.request('/emprestimos/abertos'); },
-    async getEmprestimosAluno(alunoId) { return this.request(`/emprestimos/aluno/${alunoId}`); },
-    async criarEmprestimo(emprestimoDto) { return this.request('/emprestimos', 'POST', emprestimoDto); },
-    async devolverEmprestimo(id) { return this.request(`/emprestimos/${id}/devolucao`, 'PUT'); }
+    async post(endpoint, data) {
+        const response = await fetch(`${this.baseUrl}/${endpoint}`, {
+            method: 'POST',
+            headers: this.getHeaders(),
+            body: JSON.stringify(data)
+        });
+        return this.handleResponse(response);
+    },
+
+    async put(endpoint, data) {
+        const response = await fetch(`${this.baseUrl}/${endpoint}`, {
+            method: 'PUT',
+            headers: this.getHeaders(),
+            body: data ? JSON.stringify(data) : null
+        });
+        return this.handleResponse(response);
+    },
+
+    async delete(endpoint) {
+        const response = await fetch(`${this.baseUrl}/${endpoint}`, {
+            method: 'DELETE',
+            headers: this.getHeaders()
+        });
+        return this.handleResponse(response);
+    }
 };
