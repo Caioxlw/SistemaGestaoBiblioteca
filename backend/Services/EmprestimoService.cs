@@ -7,6 +7,9 @@ namespace BibliotecaAPI.Services;
 
 public class EmprestimoService : IEmprestimoService
 {
+    private const int PrazoPadraoEmprestimoDias = 14;
+    private const decimal MultaPorDiaAtraso = 2.00m;
+
     private readonly IEmprestimoRepository _emprestimoRepository;
     private readonly ILivroRepository _livroRepository;
     private readonly IAlunoRepository _alunoRepository;
@@ -46,13 +49,14 @@ public class EmprestimoService : IEmprestimoService
         if (await _emprestimoRepository.PossuiEmprestimoAtivoAsync(dto.AlunoId, dto.LivroId))
             throw new ConflictException("O aluno já possui um empréstimo ativo deste livro.");
 
+        var dataEmprestimo = DateTime.UtcNow;
+
         var emprestimo = new Emprestimo
         {
             AlunoId = dto.AlunoId,
             LivroId = dto.LivroId,
-            DataEmprestimo = DateTime.UtcNow,
-            // Lógica antiga mantida: ignora a data enviada e fixa o prazo em 14 dias.
-            DataPrevistaDevolucao = DateTime.UtcNow.AddDays(14),
+            DataEmprestimo = dataEmprestimo,
+            DataPrevistaDevolucao = dataEmprestimo.AddDays(PrazoPadraoEmprestimoDias),
             Status = StatusEmprestimo.Ativo
         };
 
@@ -147,13 +151,10 @@ public class EmprestimoService : IEmprestimoService
 
     public decimal CalcularMulta(int diasAtraso)
     {
-        // Lógica atualizada para R$ 2,00 conforme exercício.
-        const decimal valorPorDia = 2.00m;
-
         if (diasAtraso <= 0)
             return 0;
 
-        return diasAtraso * valorPorDia;
+        return diasAtraso * MultaPorDiaAtraso;
     }
 
     public void ValidarDisponibilidade(int quantidade)
@@ -162,16 +163,42 @@ public class EmprestimoService : IEmprestimoService
             throw new RegraNegocioException("Livro indisponível para empréstimo.");
     }
 
-    private static EmprestimoResponseDto Mapear(Emprestimo emprestimo) => new()
+    private EmprestimoResponseDto Mapear(Emprestimo emprestimo)
     {
-        Id = emprestimo.Id,
-        AlunoId = emprestimo.AlunoId,
-        NomeAluno = emprestimo.Aluno?.Nome ?? string.Empty,
-        LivroId = emprestimo.LivroId,
-        TituloLivro = emprestimo.Livro?.Titulo ?? string.Empty,
-        DataEmprestimo = emprestimo.DataEmprestimo,
-        DataPrevistaDevolucao = emprestimo.DataPrevistaDevolucao,
-        DataDevolucao = emprestimo.DataDevolucao,
-        Status = emprestimo.Status.ToString()
-    };
+        var referencia = emprestimo.DataDevolucao ?? DateTime.UtcNow;
+        var diasAtraso = CalcularDiasAtraso(emprestimo.DataPrevistaDevolucao, referencia);
+
+        return new EmprestimoResponseDto
+        {
+            Id = emprestimo.Id,
+            AlunoId = emprestimo.AlunoId,
+            NomeAluno = emprestimo.Aluno?.Nome ?? string.Empty,
+            LivroId = emprestimo.LivroId,
+            TituloLivro = emprestimo.Livro?.Titulo ?? string.Empty,
+            DataEmprestimo = emprestimo.DataEmprestimo,
+            DataPrevistaDevolucao = emprestimo.DataPrevistaDevolucao,
+            DataDevolucao = emprestimo.DataDevolucao,
+            DiasAtraso = diasAtraso,
+            Multa = CalcularMulta(diasAtraso),
+            Status = ObterStatusAtual(emprestimo, referencia).ToString()
+        };
+    }
+
+    private static int CalcularDiasAtraso(DateTime dataPrevistaDevolucao, DateTime referencia)
+    {
+        if (referencia.Date <= dataPrevistaDevolucao.Date)
+            return 0;
+
+        return (referencia.Date - dataPrevistaDevolucao.Date).Days;
+    }
+
+    private static StatusEmprestimo ObterStatusAtual(Emprestimo emprestimo, DateTime referencia)
+    {
+        if (emprestimo.Status == StatusEmprestimo.Devolvido)
+            return StatusEmprestimo.Devolvido;
+
+        return referencia.Date > emprestimo.DataPrevistaDevolucao.Date
+            ? StatusEmprestimo.Atrasado
+            : emprestimo.Status;
+    }
 }
