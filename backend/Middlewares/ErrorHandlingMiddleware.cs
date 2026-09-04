@@ -32,6 +32,12 @@ public class ErrorHandlingMiddleware
 
         var problemDetails = exception switch
         {
+            RegraNegocioException regraEx => new ProblemDetails
+            {
+                Title = "Regra de negócio violada",
+                Status = (int)HttpStatusCode.BadRequest,
+                Detail = regraEx.Message
+            },
             ConflictException conflictEx => new ProblemDetails
             {
                 Title = "Conflito de negócio",

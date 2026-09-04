@@ -1,11 +1,16 @@
 using BibliotecaAPI.DTOs;
 using BibliotecaAPI.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
+using System.Security.Claims;
+using System.Threading.Tasks;
 
 namespace BibliotecaAPI.Controllers;
 
 [ApiController]
 [Route("api/emprestimos")]
+[Authorize(Roles = "Admin,Bibliotecario")]
 public class EmprestimosController : ControllerBase
 {
     private readonly IEmprestimoService _emprestimoService;
@@ -37,16 +42,44 @@ public class EmprestimosController : ControllerBase
     }
 
     [HttpGet("aluno/{alunoId:int}")]
+    [Authorize(Roles = "Admin,Bibliotecario,Aluno")]
     public async Task<ActionResult<IEnumerable<EmprestimoResponseDto>>> ObterPorAluno(int alunoId)
     {
+        var role = User.FindFirst(ClaimTypes.Role)?.Value;
+        var alunoIdClaim = User.FindFirst("AlunoId")?.Value;
+
+        if (role == "Aluno" && alunoIdClaim != alunoId.ToString())
+        {
+            return Forbid();
+        }
+
         var emprestimos = await _emprestimoService.ObterPorAlunoAsync(alunoId);
         return Ok(emprestimos);
     }
 
+    /// <summary>
+    /// Devolução via PUT /api/emprestimos/{id}/devolucao (utilizada no frontend).
+    /// </summary>
     [HttpPut("{id:int}/devolucao")]
     public async Task<ActionResult<EmprestimoResponseDto>> Devolucao(int id)
     {
         var emprestimo = await _emprestimoService.DevolverAsync(id);
+        return Ok(emprestimo);
+    }
+
+    /// <summary>
+    /// Devolução via POST /api/emprestimos/devolver (conforme especificação dos requisitos).
+    /// </summary>
+    [HttpPost("devolver")]
+    public async Task<ActionResult<EmprestimoResponseDto>> Devolver([FromBody] DevolverEmprestimoDto? dto, [FromQuery] int? id)
+    {
+        int emprestimoId = dto?.EmprestimoId ?? id ?? 0;
+        if (emprestimoId <= 0)
+        {
+            return BadRequest(new { message = "Informe o ID do empréstimo para efetuar a devolução." });
+        }
+
+        var emprestimo = await _emprestimoService.DevolverAsync(emprestimoId);
         return Ok(emprestimo);
     }
 }

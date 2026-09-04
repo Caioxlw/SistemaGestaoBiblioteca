@@ -48,6 +48,15 @@ namespace SistemaGestaoBiblioteca.Migrations
                         .IsUnique();
 
                     b.ToTable("Alunos");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Email = "aluno@smartlib.com",
+                            Matricula = "2026001",
+                            Nome = "Aluno Exemplo"
+                        });
                 });
 
             modelBuilder.Entity("BibliotecaAPI.Models.Autor", b =>
@@ -72,6 +81,15 @@ namespace SistemaGestaoBiblioteca.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Autores");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            DataNascimento = new DateTime(1892, 1, 3, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Nacionalidade = "Britânico",
+                            Nome = "J.R.R. Tolkien"
+                        });
                 });
 
             modelBuilder.Entity("BibliotecaAPI.Models.Emprestimo", b =>
@@ -123,7 +141,23 @@ namespace SistemaGestaoBiblioteca.Migrations
                     b.Property<int>("AutorId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Categoria")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Descricao")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Editora")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<string>("Isbn")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Localizacao")
                         .IsRequired()
                         .HasColumnType("text");
 
@@ -139,6 +173,194 @@ namespace SistemaGestaoBiblioteca.Migrations
                     b.HasIndex("AutorId");
 
                     b.ToTable("Livros");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            AnoPublicacao = 1954,
+                            AutorId = 1,
+                            Categoria = "Fantasia",
+                            Descricao = "Fantasia épica.",
+                            Editora = "HarperCollins",
+                            Isbn = "9780007136599",
+                            Localizacao = "A1",
+                            Quantidade = 0,
+                            Titulo = "O Senhor dos Anéis"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            AnoPublicacao = 2003,
+                            AutorId = 1,
+                            Categoria = "Tecnologia",
+                            Descricao = "Livro de java",
+                            Editora = "OReilly",
+                            Isbn = "9781234567897",
+                            Localizacao = "T1",
+                            Quantidade = 5,
+                            Titulo = "Head First Java"
+                        });
+                });
+
+            modelBuilder.Entity("BibliotecaAPI.Models.LogAuditoria", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Acao")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("DataHora")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Detalhes")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Entidade")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int?>("EntidadeId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("NomeUsuario")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Auditoria");
+                });
+
+            modelBuilder.Entity("BibliotecaAPI.Models.Notificacao", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AlunoId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("DataNotificacao")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("Lida")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Mensagem")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AlunoId");
+
+                    b.ToTable("Notificacoes");
+                });
+
+            modelBuilder.Entity("BibliotecaAPI.Models.Reserva", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AlunoId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("DataReserva")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("LivroId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AlunoId");
+
+                    b.HasIndex("LivroId");
+
+                    b.ToTable("Reservas");
+                });
+
+            modelBuilder.Entity("BibliotecaAPI.Models.Usuario", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int?>("AlunoId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("Perfil")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("SenhaHash")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AlunoId");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.ToTable("Usuarios");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            Email = "admin@smartlib.com",
+                            Nome = "Administrador",
+                            Perfil = 0,
+                            SenhaHash = "$2a$11$ohkyeBgXwphJebuiUHq5fu0rtUJ8xrne4MQrc8Livs2HGW8tYRdv."
+                        },
+                        new
+                        {
+                            Id = 2,
+                            Email = "biblio@smartlib.com",
+                            Nome = "Bibliotecário Chefe",
+                            Perfil = 1,
+                            SenhaHash = "$2a$11$kaOr4lVi/FizMj1GwKQR2ujlE9nmbF65tQ/nX5zHgWZdeE3FHbCHy"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            AlunoId = 1,
+                            Email = "aluno@smartlib.com",
+                            Nome = "Aluno Exemplo",
+                            Perfil = 2,
+                            SenhaHash = "$2a$11$QQfyZ8TbNMfc.QFLztUN7eqrUG7ICAv89ksSg77WE/Qh7d1FEf6si"
+                        });
                 });
 
             modelBuilder.Entity("BibliotecaAPI.Models.Emprestimo", b =>
@@ -169,6 +391,45 @@ namespace SistemaGestaoBiblioteca.Migrations
                         .IsRequired();
 
                     b.Navigation("Autor");
+                });
+
+            modelBuilder.Entity("BibliotecaAPI.Models.Notificacao", b =>
+                {
+                    b.HasOne("BibliotecaAPI.Models.Aluno", "Aluno")
+                        .WithMany()
+                        .HasForeignKey("AlunoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Aluno");
+                });
+
+            modelBuilder.Entity("BibliotecaAPI.Models.Reserva", b =>
+                {
+                    b.HasOne("BibliotecaAPI.Models.Aluno", "Aluno")
+                        .WithMany()
+                        .HasForeignKey("AlunoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("BibliotecaAPI.Models.Livro", "Livro")
+                        .WithMany()
+                        .HasForeignKey("LivroId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Aluno");
+
+                    b.Navigation("Livro");
+                });
+
+            modelBuilder.Entity("BibliotecaAPI.Models.Usuario", b =>
+                {
+                    b.HasOne("BibliotecaAPI.Models.Aluno", "Aluno")
+                        .WithMany()
+                        .HasForeignKey("AlunoId");
+
+                    b.Navigation("Aluno");
                 });
 
             modelBuilder.Entity("BibliotecaAPI.Models.Aluno", b =>

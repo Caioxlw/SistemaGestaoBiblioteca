@@ -10,15 +10,24 @@ public class EmprestimoService : IEmprestimoService
     private readonly IEmprestimoRepository _emprestimoRepository;
     private readonly ILivroRepository _livroRepository;
     private readonly IAlunoRepository _alunoRepository;
+    private readonly INotificationService? _notificationService;
+    private readonly IAuditoriaService? _auditoriaService;
+    private readonly ICacheService? _cacheService;
 
     public EmprestimoService(
         IEmprestimoRepository emprestimoRepository,
         ILivroRepository livroRepository,
-        IAlunoRepository alunoRepository)
+        IAlunoRepository alunoRepository,
+        INotificationService? notificationService = null,
+        IAuditoriaService? auditoriaService = null,
+        ICacheService? cacheService = null)
     {
         _emprestimoRepository = emprestimoRepository;
         _livroRepository = livroRepository;
         _alunoRepository = alunoRepository;
+        _notificationService = notificationService;
+        _auditoriaService = auditoriaService;
+        _cacheService = cacheService;
     }
 
     public async Task<EmprestimoResponseDto> CriarAsync(CriarEmprestimoDto dto)
@@ -52,6 +61,22 @@ public class EmprestimoService : IEmprestimoService
         await _livroRepository.AtualizarAsync(livro);
         await _emprestimoRepository.AdicionarAsync(emprestimo);
 
+        if (_cacheService != null)
+        {
+            await _cacheService.RemoveAsync("livros:populares");
+        }
+
+        if (_auditoriaService != null)
+        {
+            await _auditoriaService.RegistrarAcaoAsync(
+                nomeUsuario: string.Empty,
+                acao: "Criou Empréstimo",
+                entidade: "Emprestimo",
+                entidadeId: emprestimo.Id,
+                detalhes: $"Empréstimo do livro '{livro.Titulo}' (ID {livro.Id}) para o aluno '{aluno.Nome}' (ID {aluno.Id})"
+            );
+        }
+
         emprestimo.Aluno = aluno;
         emprestimo.Livro = livro;
         return Mapear(emprestimo);
@@ -76,6 +101,28 @@ public class EmprestimoService : IEmprestimoService
 
         await _livroRepository.AtualizarAsync(livro);
         await _emprestimoRepository.AtualizarAsync(emprestimo);
+
+        // DISPARO IMEDIATO DA NOTIFICAÇÃO: Se houver reserva pendente, avisa o próximo da fila
+        if (_notificationService != null)
+        {
+            await _notificationService.NotificarProximoDaFilaAsync(livro.Id);
+        }
+
+        if (_cacheService != null)
+        {
+            await _cacheService.RemoveAsync("livros:populares");
+        }
+
+        if (_auditoriaService != null)
+        {
+            await _auditoriaService.RegistrarAcaoAsync(
+                nomeUsuario: string.Empty,
+                acao: "Registrou Devolução",
+                entidade: "Emprestimo",
+                entidadeId: emprestimo.Id,
+                detalhes: $"Devolução concluída do livro '{livro.Titulo}' (ID {livro.Id})"
+            );
+        }
 
         emprestimo.Livro = livro;
         return Mapear(emprestimo);

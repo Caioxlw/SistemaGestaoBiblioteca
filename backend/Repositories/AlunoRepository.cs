@@ -17,10 +17,17 @@ public class AlunoRepository : IAlunoRepository
         await _context.Alunos.FindAsync(id);
 
     public async Task<IEnumerable<Aluno>> ObterTodosAsync() =>
-        await _context.Alunos.ToListAsync();
+        await _context.Alunos.OrderBy(a => a.Nome).ToListAsync();
 
-    public async Task<bool> ExisteMatriculaAsync(string matricula) =>
-        await _context.Alunos.AnyAsync(a => a.Matricula == matricula);
+    public async Task<bool> ExisteMatriculaAsync(string matricula, int? ignorarId = null) =>
+        ignorarId.HasValue
+            ? await _context.Alunos.AnyAsync(a => a.Matricula == matricula && a.Id != ignorarId.Value)
+            : await _context.Alunos.AnyAsync(a => a.Matricula == matricula);
+
+    public async Task<bool> ExisteEmailAsync(string email, int? ignorarId = null) =>
+        ignorarId.HasValue
+            ? await _context.Alunos.AnyAsync(a => a.Email.ToLower() == email.ToLower() && a.Id != ignorarId.Value)
+            : await _context.Alunos.AnyAsync(a => a.Email.ToLower() == email.ToLower());
 
     public async Task AdicionarAsync(Aluno aluno)
     {

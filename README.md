@@ -1,175 +1,139 @@
-# Sistema de Gestão de Biblioteca — API REST
+# 📚 SmartLib — Plataforma Inteligente de Gestão de Biblioteca
 
-Este é o backend do Sistema de Gestão de Biblioteca, uma API RESTful desenvolvida em C# utilizando o framework ASP.NET Core e Entity Framework Core. O sistema permite o gerenciamento completo de autores, livros, alunos e os empréstimos realizados, mantendo o controle de estoque e aplicando regras de negócio robustas.
+O **SmartLib** é uma solução completa de nível corporativo e arquitetura moderna para a gestão de acervos, usuários, empréstimos e reservas de uma biblioteca universitária. O sistema foi projetado sob os princípios de engenharia de software limpa, sendo totalmente containerizado, seguro e pronto para produção.
+
+---
 
 ## 🚀 Stack Tecnológica
-- **Linguagem:** C# 12 / .NET 8 (ou compatível)
+
+### Backend (API REST)
+- **Linguagem:** C# 12 / .NET 10
 - **Framework Web:** ASP.NET Core Web API
-- **ORM:** Entity Framework Core
-- **Banco de Dados:** SQLite (arquivo local `biblioteca.db`)
-- **Documentação da API:** Swagger / OpenAPI
+- **Segurança:** JWT (JSON Web Token) com autenticação baseada em perfis (RBAC - Role-Based Access Control)
+- **ORM:** Entity Framework Core 10 com migrations automáticas
+- **Banco de Dados:** PostgreSQL (via Docker), persistência em Docker Volume
+- **Cache:** Redis 7 (Padrão Cache-Aside com expiração e invalidação reativa)
+- **Health Checks:** `Microsoft.AspNetCore.Diagnostics.HealthChecks` com verificação profunda de PostgreSQL e Redis
+- **Auditoria:** Gravação automática de Quem, O quê, Quando e Detalhes de ações críticas
 
-## 📁 Arquitetura e Estrutura do Projeto
+### Frontend (UI Premium)
+- **Tecnologias:** HTML5, Vanilla JS, CSS3 Moderno
+- **Visual:** Tema Dark Mode Premium, Glassmorphism, Micro-animações e Design Responsivo (Mobile-first)
+- **Gráficos:** Chart.js integrado nativamente exibindo 4 gráficos no Dashboard
+- **Servidor Web:** Nginx (via Docker) atuando como Reverse Proxy
 
-O projeto adota uma arquitetura em camadas focada em separação de responsabilidades (Separation of Concerns), facilitando a manutenção e a escalabilidade:
+---
 
-- **`Models/`**: Entidades de domínio mapeadas para o banco de dados (Autor, Livro, Aluno, Emprestimo).
-- **`DTOs/`** (Data Transfer Objects): Classes de transporte de dados usadas nas requisições (entrada) e respostas (saída) dos endpoints, protegendo o domínio interno.
-- **`Repositories/`**: Camada de acesso a dados. Isola a lógica de interação com o Entity Framework (`DbContext`).
-- **`Services/`**: Camada de regras de negócio. Onde o processamento pesado e as validações ocorrem antes de gravar no banco (ex: verificar estoque disponível).
-- **`Controllers/`**: Responsáveis por expor os endpoints REST (HTTP), recebendo requests, chamando os serviços e retornando as respostas HTTP apropriadas.
-- **`Exceptions/`**: Exceções customizadas de domínio (`ConflictException`, `NotFoundException`) para melhorar o mapeamento de erros HTTP.
-- **`Middlewares/`**: Contém o middleware global de tratamento de erros (`ErrorHandlingMiddleware`), que intercepta falhas e padroniza a resposta no formato `ProblemDetails`.
-- **`Migrations/`**: Histórico de migrações do banco de dados (EF Core).
-- **`Data/`**: Configuração do `DbContext`.
+## 💎 Funcionalidades e Lacunas Resolvidas
 
-## 🛠️ Como rodar o projeto localmente
+### 1. 🔔 Notificação Automática na Devolução (Fluxo FIFO Estrito)
+- Ao realizar a devolução de um exemplar (`POST /api/emprestimos/devolver` ou `PUT /api/emprestimos/{id}/devolucao`), o sistema verifica imediatamente se há reservas com status `Pendente` para o livro.
+- A busca segue ordem **estritamente cronológica** (`OrderBy(r => r.DataReserva)`).
+- O próximo da fila tem sua reserva alterada para `Atendida` e uma notificação é registrada na tabela `Notificacoes` com mensagem personalizada informando a disponibilidade para retirada.
+- Alunos visualizam suas notificações em tempo real na interface com badge de contagem e botão para "Marcar como Lida".
 
-### Pré-requisitos
-- [.NET SDK](https://dotnet.microsoft.com/download) instalado (verifique a versão configurada no `.csproj`).
+### 2. 📚 Schema do Livro (9 Atributos Obrigatórios)
+O modelo `Livro` contempla os 9 campos obrigatórios exigidos pela especificação:
+1. **ISBN** (`Isbn`) — Obrigatório
+2. **Título** (`Titulo`) — Obrigatório
+3. **Descrição** (`Descricao`) — Obrigatório
+4. **Ano** (`Ano` / `AnoPublicacao`) — Obrigatório (1000 a 2100) com suporte a alias transparente
+5. **Editora** (`Editora`) — Obrigatório
+6. **Categoria** (`Categoria`) — Obrigatório
+7. **Autor** (`AutorId` / `NomeAutor`) — Obrigatório com chave estrangeira
+8. **Quantidade** (`Quantidade`) — Obrigatório (estoque controlado)
+9. **Localização** (`Localizacao`) — Obrigatório (ex: "A1", "T1")
 
-### Passos
+### 3. ⚡ Padrão Cache-Aside com Redis (Livros Populares)
+- **Endpoint da Spec:** `GET /api/livros/populares` (implementado no `LivrosController` com `[AllowAnonymous]`).
+- **Endpoint de Relatórios:** `GET /api/relatorios/populares` (mantido no `DashboardController` para total retrocompatibilidade com o frontend).
+- **Fluxo do Padrão Cache-Aside:**
+  1. Consulta a chave `"livros:populares"` no Redis.
+  2. **Cache Hit:** Retorna os dados em memória imediatamente (latência mínima).
+  3. **Cache Miss:** Consulta o PostgreSQL agrupando os empréstimos por livro (Top 10), salva o resultado no Redis com TTL de 30 minutos e retorna.
+  4. **Invalidação Reativa:** Ao cadastrar ou devolver qualquer empréstimo, a chave em cache é limpa automaticamente.
 
-1. **Restaurar os pacotes NuGet:**
-   ```bash
-   dotnet restore
-   ```
-2. **Atualizar o banco de dados (rodar Migrations):**
-   *(Este comando criará o arquivo `biblioteca.db` se não existir e aplicará o schema)*
-   ```bash
-   dotnet ef database update
-   ```
-3. **Executar a API (Backend):**
-   ```bash
-   cd backend
-   dotnet run
-   ```
-4. **Acessar a documentação interativa:**
-   Abra seu navegador e acesse a URL fornecida no terminal adicionando `/swagger` ao final. Exemplo: `http://localhost:5207/swagger`.
+### 4. 🛡️ RBAC Efetivo em Todos os Endpoints
+Todos os endpoints sensíveis possuem anotações `[Authorize(Roles = "...")]` ativas e testadas:
 
-### Como rodar o Frontend
+| Controller | Rota | Método | Perfis Permitidos |
+|:---|:---|:---|:---|
+| **Livros** | `/api/livros` | POST / PUT | `Admin`, `Bibliotecario` |
+| **Livros** | `/api/livros/{id}` | DELETE | `Admin`, `Bibliotecario` |
+| **Livros** | `/api/livros`, `/populares`, `/{id}` | GET | Público (`[AllowAnonymous]`) |
+| **Alunos** | `/api/alunos` | POST / GET / PUT | `Admin`, `Bibliotecario` |
+| **Alunos** | `/api/alunos/{id}` | DELETE | `Admin` |
+| **Autores** | `/api/autores` | POST / PUT | `Admin`, `Bibliotecario` |
+| **Autores** | `/api/autores/{id}` | DELETE | `Admin` |
+| **Autores** | `/api/autores` | GET | Público (`[AllowAnonymous]`) |
+| **Empréstimos**| `/api/emprestimos`, `/abertos` | GET | `Admin`, `Bibliotecario` |
+| **Empréstimos**| `/api/emprestimos` | POST | `Admin`, `Bibliotecario` |
+| **Empréstimos**| `/api/emprestimos/devolver`, `/{id}/devolucao` | POST / PUT | `Admin`, `Bibliotecario` |
+| **Empréstimos**| `/api/emprestimos/aluno/{id}` | GET | `Admin`, `Bibliotecario`, `Aluno` (somente próprio `AlunoId`) |
+| **Reservas** | `/api/reservas/fila/{livroId}` | GET | `Admin`, `Bibliotecario` |
+| **Reservas** | `/api/reservas/aluno/{id}` | GET | `Admin`, `Bibliotecario`, `Aluno` (somente próprio `AlunoId`) |
+| **Reservas** | `/api/reservas` | POST | `Admin`, `Bibliotecario`, `Aluno` (somente próprio `AlunoId`) |
+| **Auditoria**| `/api/auditoria` | GET | `Admin` |
+| **Dashboard**| `/api/dashboard`, `/api/relatorios/*` | GET | `Admin`, `Bibliotecario` |
 
-O projeto também possui uma interface web. Para rodá-la:
-1. Abra um novo terminal e entre na pasta do frontend:
-   ```bash
-   cd frontend
-   ```
-2. Instale as dependências (se ainda não o fez) e inicie o servidor:
-   ```bash
-   npm install
-   npm run dev
-   ```
-*(Alternativamente, se não possuir o Node.js/npm, você pode rodar o `index.html` utilizando a extensão **Live Server** do VS Code).*
+### 5. 🩺 Deep Health Check (`GET /health`)
+- Implementado com `Microsoft.AspNetCore.Diagnostics.HealthChecks`.
+- Executa checks dedicados:
+  - `PostgresHealthCheck`: Valida se o PostgreSQL responde a comandos ativos (`CanConnectAsync`).
+  - `RedisHealthCheck`: Valida ping real no servidor Redis com timeout de 3s.
+- **Resposta:**
+  - HTTP 200 `{"status": "Healthy", "checks": { "postgresql": {...}, "redis": {...} }}` somente quando ambos os serviços estão online.
+  - HTTP 503 `{"status": "Unhealthy", ...}` se qualquer um dos dois falhar.
 
-### 🐳 Como rodar com Docker (Recomendado)
+### 6. 📝 Auditoria Automática
+- Todas as operações críticas salvam automaticamente registros na tabela `Auditoria`:
+  - **Quem:** Identificado automaticamente via claims do token JWT (`Email` ou `Name`) ou `"Sistema"`.
+  - **O quê:** Ação realizada (`Criou Livro`, `Atualizou Livro`, `Excluiu Livro`, `Criou Empréstimo`, `Registrou Devolução`, `Criou Reserva`).
+  - **Quando:** Timestamp em UTC.
+  - **Detalhes:** Dados contextuais (ex: título, ISBN, ID do aluno).
 
-Se preferir rodar tudo de forma isolada usando containers:
+### 7. 📊 4 Gráficos do Dashboard no Frontend (Chart.js)
+O painel administrativo exibe em tempo real 4 gráficos responsivos em tema Dark Glassmorphism:
+1. **Livros Mais Populares** (Gráfico de Barras horizontais)
+2. **Distribuição por Categoria** (Gráfico Donut/Doughnut)
+3. **Evolução de Empréstimos por Mês** (Gráfico de Linha com gradiente suave)
+4. **Status Geral de Empréstimos e Atrasos** (Gráfico Donut comparativo: No Prazo vs Atrasados vs Devolvidos)
 
-#### Pré-requisitos
-- [Docker](https://www.docker.com/) e Docker Compose instalados.
+---
 
-#### Subir todo o sistema
+## 🐳 Como rodar com Docker
+
+### Subir todo o sistema (API + Frontend + PostgreSQL + Redis)
+Na raiz do projeto:
 ```bash
-docker compose up --build
+docker compose up --build -d
 ```
 
-#### Acessar
-- **Frontend:** http://localhost:3000
-- **API (Swagger):** http://localhost:8080/swagger
-- **PostgreSQL:** localhost:5432 (user: `user` / password: `password`)
+### Acessar a Plataforma
+- **Frontend / Painel Web:** http://localhost:3000
+- **API (Swagger Docs):** http://localhost:8080/swagger
+- **Health Check Profundo:** http://localhost:8080/health
 
-#### Parar os containers
+### 🔑 Contas de Teste (Criadas Automaticamente no Seed)
+
+| Perfil | E-mail de Acesso | Senha | Acesso Permitido |
+|:---|:---|:---|:---|
+| **Admin** | `admin@smartlib.com` | `Admin@123` | Dashboard, Livros, Alunos, Autores, Empréstimos, Reservas, **Auditoria** |
+| **Bibliotecário** | `biblio@smartlib.com` | `Biblio@123` | Dashboard, Livros, Alunos, Autores, Empréstimos, Reservas |
+| **Aluno** | `aluno@smartlib.com` | `Aluno@123` | Catálogo de Livros, Minhas Reservas, Meus Empréstimos, **Notificações** |
+
+### Parar os containers
 ```bash
 docker compose down
 ```
 
-#### Resetar o banco de dados
+---
+
+## 🧪 Testes Unitários
+
+O projeto conta com suíte automatizada no xUnit com Moq validando regras de negócio, devolução com notificação e Cache-Aside no Redis.
+
+Para executar localmente:
 ```bash
-docker compose down -v
-docker compose up --build
+dotnet test
 ```
-
-> **Nota:** Ao rodar com Docker, o banco de dados utilizado é o **PostgreSQL** (em vez do SQLite local). Os dados persistem entre reinícios graças ao volume `db-data`. Use `docker compose down -v` para apagar o volume e recomeçar do zero.
-
-### Como rodar os Testes Unitários
-
-O projeto possui testes unitários simulando a camada de persistência. Para executá-los:
-1. Volte para a raiz do projeto (ou entre na pasta de testes) e rode:
-   ```bash
-   dotnet test tests/backend.Tests
-   ```
-
-## 📊 Modelo de Dados
-
-As principais entidades e seus relacionamentos:
-
-| Entidade | Descrição | Relacionamentos |
-|---|---|---|
-| **Autor** | Representa o escritor do livro. | 1 Autor tem *N* Livros |
-| **Livro** | Obra disponível. Tem ISBN, título e estoque. | Pertence a 1 Autor |
-| **Aluno** | Pessoa cadastrada para emprestar livros (matrícula única). | 1 Aluno tem *N* Empréstimos |
-| **Emprestimo** | O ato do empréstimo de um livro para um aluno. | Liga 1 Aluno a 1 Livro |
-
-## 🔌 Endpoints Principais
-
-Abaixo estão as rotas disponíveis na API (Prefixos base: `/api/...`):
-
-### ✍️ Autores (`/api/autores`)
-- **`GET /api/autores`**: Lista todos os autores.
-- **`GET /api/autores/{id}`**: Obtém detalhes de um autor específico.
-- **`POST /api/autores`**: Cadastra um novo autor.
-  - *Exemplo de Payload:* `{"nome": "J.R.R. Tolkien", "dataNascimento": "1892-01-03T00:00:00Z", "nacionalidade": "Britânico"}`
-  - *Retorno de Sucesso:* `201 Created`
-
-### 📚 Livros (`/api/livros`)
-- **`GET /api/livros`**: Lista os livros. Suporta filtros via querystring (`?titulo=...&autor=...`).
-- **`GET /api/livros/{id}`**: Obtém detalhes de um livro específico.
-- **`POST /api/livros`**: Cadastra um novo livro.
-  - *Exemplo de Payload:* `{"isbn": "9780007136599", "titulo": "O Senhor dos Anéis", "anoPublicacao": 1954, "quantidade": 5, "autorId": 1}`
-  - *Retorno de Sucesso:* `201 Created`
-
-### 🎓 Alunos (`/api/alunos`)
-- **`POST /api/alunos`**: Cadastra um novo aluno.
-  - *Exemplo de Payload:* `{"nome": "João Silva", "matricula": "2023001", "email": "joao@email.com"}`
-  - *Retorno de Sucesso:* `201 Created`
-  - *Regra 409:* Se a matrícula já existir.
-
-### 🔄 Empréstimos (`/api/emprestimos`)
-- **`POST /api/emprestimos`**: Registra um novo empréstimo.
-  - *Exemplo de Payload:* `{"alunoId": 1, "livroId": 1, "dataPrevistaDevolucao": "2024-05-10T00:00:00Z"}`
-  - *Retorno de Sucesso:* `201 Created`
-  - *Regras 409:* 1. Estoque insuficiente no livro. 2. O aluno já possui empréstimo ativo deste livro.
-- **`PUT /api/emprestimos/{id}/devolucao`**: Marca um empréstimo como devolvido.
-  - *Regra 409:* Se o empréstimo já estiver devolvido.
-
-## ⚠️ Regras de Negócio e Tratamento de Erros
-
-A API conta com um middleware (`ErrorHandlingMiddleware`) que intercepta falhas de negócio não tratadas localmente. As respostas seguem o formato [RFC 7807 (Problem Details)](https://datatracker.ietf.org/doc/html/rfc7807).
-
-**Status mais comuns:**
-- `200 OK` / `201 Created`: Sucesso.
-- `400 Bad Request`: Falha na validação dos DTOs (Data Annotations).
-- `404 Not Found`: Quando um ID (livro, autor, aluno, empréstimo) consultado não existe.
-- `409 Conflict`: Violações da regra de negócio (matrícula duplicada, sem estoque de livro, devolução/empréstimo duplicado).
-
-*Exemplo de resposta de erro (409 Conflict):*
-```json
-{
-  "title": "Conflito de negócio",
-  "status": 409,
-  "detail": "O aluno já possui um empréstimo ativo deste mesmo livro."
-}
-```
-
-## 📝 Convenção de Commits
-Este repositório encoraja a utilização de *Conventional Commits*:
-- `feat`: Uma nova feature.
-- `fix`: Correção de um bug.
-- `docs`: Mudanças exclusivas em documentação (como este README).
-- `chore`: Alterações no processo de build ou ferramentas auxiliares, sem mexer no código de produção.
-
-## 🔮 Melhorias Futuras / Roadmap
-Como evolução arquitetural e funcional deste sistema, planejamos no futuro:
-- **Autenticação e Autorização (JWT):** Proteger rotas com base em perfis de "Admin" e "Aluno".
-- **Paginação e Busca Avançada:** Em `GET`s volumosos (livros e autores) usando PageNumber e PageSize.
-- **Testes Automatizados:** Cobertura com xUnit/NUnit simulando os Repositories via Moq.

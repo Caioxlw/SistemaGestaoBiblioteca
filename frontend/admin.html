@@ -3,273 +3,380 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Admin - Biblioteca</title>
+    <title>SmartLib - Painel Administrativo</title>
     <link rel="stylesheet" href="css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
-    <nav class="app-navbar">
-        <div class="navbar-brand">📚 Biblioteca API <span style="color:var(--text-muted);font-weight:400;font-size:0.9rem">| Admin Panel</span></div>
-        <div class="navbar-user">
-            <div>
-                <strong id="navbarUserName"></strong> <span id="navbarUserRole"></span>
-            </div>
-            <button class="btn btn-small" onclick="auth.logout()">Sair</button>
+<body class="app-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h2>SmartLib</h2>
+            <span>Painel de Gestão</span>
         </div>
-    </nav>
-
-    <main class="app-container">
-        <!-- Global Feedback Message -->
-        <div id="globalAlert" class="alert"></div>
-
-        <div class="tabs-nav">
-            <button class="tab-btn active" data-target="tab-livros">Livros</button>
-            <button class="tab-btn" data-target="tab-autores">Autores</button>
-            <button class="tab-btn" data-target="tab-alunos">Alunos</button>
-            <button class="tab-btn" data-target="tab-emprestimos">Empréstimos</button>
-        </div>
-
-        <!-- TAB: LIVROS -->
-        <section id="tab-livros" class="tab-content active">
-            <div class="admin-card glass-effect">
-                <h2>Cadastrar Novo Livro</h2>
-                <form id="formLivro" class="form-row">
-                    <div class="form-group">
-                        <label>ISBN</label>
-                        <input type="text" id="livroIsbn" required>
-                    </div>
-                    <div class="form-group" style="flex: 2">
-                        <label>Título</label>
-                        <input type="text" id="livroTitulo" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Ano Publ.</label>
-                        <input type="number" id="livroAno" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Quantidade</label>
-                        <input type="number" id="livroQtd" min="0" required>
-                    </div>
-                    <div class="form-group" style="flex: 1.5">
-                        <label>Autor</label>
-                        <select id="livroAutor" required>
-                            <option value="">Carregando autores...</option>
-                        </select>
-                    </div>
-                    <div class="form-group" style="min-width: 120px;">
-                        <button type="submit" class="btn btn-primary btn-block" style="margin-top: 1.5rem">Salvar</button>
-                    </div>
-                </form>
+        <nav class="sidebar-menu">
+            <div class="menu-item active" data-section="dashboard">Dashboard</div>
+            <div class="menu-item" data-section="livros">Livros</div>
+            <div class="menu-item" data-section="autores">Autores</div>
+            <div class="menu-item" data-section="alunos">Alunos</div>
+            <div class="menu-item" data-section="emprestimos">Empréstimos</div>
+            <div class="menu-item" data-section="reservas">Fila de Reservas</div>
+            <div class="menu-item" data-section="auditoria" id="menuAuditoria" style="display:none;">Auditoria (Admin)</div>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <strong id="userName">Usuário Logado</strong>
+                <span id="userRole">Perfil</span>
             </div>
+            <button class="btn btn-danger btn-block" onclick="auth.logout()">Sair</button>
+        </div>
+    </aside>
 
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Dashboard Section -->
+        <section id="sec-dashboard" class="content-section active">
             <div class="admin-card glass-effect">
-                <h2>Livros Cadastrados</h2>
+                <h2>Visão Geral</h2>
+                <div class="metrics-grid">
+                    <div class="metric-card glass-effect">
+                        <div class="metric-title">Total de Livros</div>
+                        <div class="metric-value" id="dashTotalLivros">-</div>
+                    </div>
+                    <div class="metric-card glass-effect">
+                        <div class="metric-title">Total de Usuários</div>
+                        <div class="metric-value" id="dashTotalUsuarios">-</div>
+                    </div>
+                    <div class="metric-card glass-effect">
+                        <div class="metric-title">Empréstimos Ativos</div>
+                        <div class="metric-value" id="dashEmprestimosAtivos">-</div>
+                    </div>
+                    <div class="metric-card glass-effect" style="border-left: 4px solid var(--danger);">
+                        <div class="metric-title">Livros Atrasados</div>
+                        <div class="metric-value" id="dashLivrosAtrasados" style="color: var(--danger);">-</div>
+                    </div>
+                </div>
+                <div class="charts-grid">
+                    <div class="chart-container glass-effect">
+                        <canvas id="chartPopulares"></canvas>
+                    </div>
+                    <div class="chart-container glass-effect">
+                        <canvas id="chartCategorias"></canvas>
+                    </div>
+                    <div class="chart-container glass-effect">
+                        <canvas id="chartEmprestimosMes"></canvas>
+                    </div>
+                    <div class="chart-container glass-effect">
+                        <canvas id="chartStatusAtrasos"></canvas>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="admin-card glass-effect">
+                <h2>Livros em Atraso Crítico</h2>
                 <div class="table-responsive">
-                    <table id="tableLivros">
+                    <table id="tabelaAtrasados">
                         <thead>
                             <tr>
-                                <th>ID</th>
-                                <th>Título</th>
-                                <th>Autor</th>
-                                <th>ISBN</th>
-                                <th>Ano</th>
-                                <th>Estoque</th>
-                                <th>Ações</th>
+                                <th>Aluno (Email)</th>
+                                <th>Livro</th>
+                                <th>Previsão</th>
+                                <th>Dias Atraso</th>
+                                <th>Multa</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <!-- Preenchido via JS -->
-                        </tbody>
+                        <tbody></tbody>
                     </table>
                 </div>
             </div>
         </section>
 
-        <!-- TAB: AUTORES -->
-        <section id="tab-autores" class="tab-content">
+        <!-- Livros Section -->
+        <section id="sec-livros" class="content-section">
             <div class="admin-card glass-effect">
-                <h2>Cadastrar Autor</h2>
-                <form id="formAutor" class="form-row">
-                    <div class="form-group" style="flex: 2">
-                        <label>Nome</label>
-                        <input type="text" id="autorNome" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Data Nascimento</label>
-                        <input type="date" id="autorNasc" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Nacionalidade</label>
-                        <input type="text" id="autorNac" required>
-                    </div>
-                    <div class="form-group">
-                        <button type="submit" class="btn btn-primary btn-block" style="margin-top: 1.5rem">Salvar</button>
-                    </div>
-                </form>
-            </div>
-
-            <div class="admin-card glass-effect">
-                <h2>Autores Cadastrados</h2>
+                <h2>Gestão de Livros
+                    <button class="btn btn-primary" onclick="abrirModalLivro()" style="margin-left:auto; font-size: 0.9rem;">+ Novo Livro</button>
+                </h2>
+                <div class="form-row" style="margin-bottom: 1rem;">
+                    <input type="text" id="buscaLivro" placeholder="Buscar por título, autor, ISBN ou categoria..." style="padding: 0.8rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: rgba(0,0,0,0.2); color: #fff; width: 100%;">
+                </div>
                 <div class="table-responsive">
-                    <table id="tableAutores">
+                    <table id="tabelaLivros">
+                        <thead>
+                            <tr>
+                                <th>ISBN</th>
+                                <th>Título</th>
+                                <th>Autor</th>
+                                <th>Categoria</th>
+                                <th>Estoque</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+                <div id="paginacaoLivros" style="display:flex; justify-content:space-between; margin-top:1rem; align-items:center;">
+                    <span id="infoPaginaLivros"></span>
+                    <div style="display:flex; gap:0.5rem;">
+                        <button class="btn btn-small" id="btnLivrosAnt">Anterior</button>
+                        <button class="btn btn-small" id="btnLivrosProx">Próxima</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Autores Section -->
+        <section id="sec-autores" class="content-section">
+            <div class="admin-card glass-effect">
+                <h2>Gestão de Autores
+                    <button class="btn btn-primary" onclick="abrirModalAutor()" style="margin-left:auto; font-size: 0.9rem;">+ Novo Autor</button>
+                </h2>
+                <div class="table-responsive">
+                    <table id="tabelaAutores">
                         <thead>
                             <tr>
                                 <th>ID</th>
                                 <th>Nome</th>
                                 <th>Nacionalidade</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Preenchido via JS -->
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-
-        <!-- TAB: ALUNOS -->
-        <section id="tab-alunos" class="tab-content">
-            <div class="admin-card glass-effect">
-                <h2>Cadastrar Aluno</h2>
-                <form id="formAluno" class="form-row">
-                    <div class="form-group" style="flex: 2">
-                        <label>Nome Completo</label>
-                        <input type="text" id="alunoNome" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Matrícula</label>
-                        <input type="text" id="alunoMatricula" required>
-                    </div>
-                    <div class="form-group" style="flex: 1.5">
-                        <label>E-mail</label>
-                        <input type="email" id="alunoEmail" required>
-                    </div>
-                    <div class="form-group">
-                        <button type="submit" class="btn btn-primary btn-block" style="margin-top: 1.5rem">Salvar</button>
-                    </div>
-                </form>
-            </div>
-
-            <div class="admin-card glass-effect">
-                <h2>Alunos Cadastrados</h2>
-                <div class="table-responsive">
-                    <table id="tableAlunos">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Nome</th>
-                                <th>Matrícula</th>
-                                <th>E-mail</th>
+                                <th>Nascimento</th>
                                 <th>Ações</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <!-- Preenchido via JS -->
-                        </tbody>
+                        <tbody></tbody>
                     </table>
                 </div>
             </div>
         </section>
 
-        <!-- TAB: EMPRÉSTIMOS -->
-        <section id="tab-emprestimos" class="tab-content">
+        <!-- Alunos Section -->
+        <section id="sec-alunos" class="content-section">
             <div class="admin-card glass-effect">
-                <h2>Novo Empréstimo</h2>
-                <form id="formEmprestimo" class="form-row">
-                    <div class="form-group" style="flex: 1">
-                        <label>ID Aluno</label>
-                        <input type="number" id="empAlunoId" placeholder="Ex: 1" required>
-                    </div>
-                    <div class="form-group" style="flex: 2">
-                        <label>Livro</label>
-                        <select id="empLivroId" required>
-                            <option value="">Carregando livros...</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Data Prevista Devolução</label>
-                        <input type="date" id="empDataDev" required>
-                    </div>
-                    <div class="form-group">
-                        <button type="submit" class="btn btn-primary btn-block" style="margin-top: 1.5rem">Emprestar</button>
-                    </div>
-                </form>
+                <h2>Gestão de Alunos
+                    <button class="btn btn-primary" onclick="abrirModalAluno()" style="margin-left:auto; font-size: 0.9rem;">+ Novo Aluno</button>
+                </h2>
+                <div class="table-responsive">
+                    <table id="tabelaAlunos">
+                        <thead>
+                            <tr>
+                                <th>Matrícula</th>
+                                <th>Nome</th>
+                                <th>Email</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
             </div>
-            
+        </section>
+
+        <!-- Empréstimos Section -->
+        <section id="sec-emprestimos" class="content-section">
             <div class="admin-card glass-effect">
-                <h2>Devolver Empréstimo</h2>
-                <form id="formDevolucao" class="form-row" style="align-items: center">
-                    <div class="form-group">
-                        <label>ID do Empréstimo</label>
-                        <input type="number" id="devEmpId" required placeholder="ID do empréstimo para devolver">
-                    </div>
-                    <div class="form-group">
-                        <button type="submit" class="btn btn-warning" style="margin-top: 0.5rem">Registrar Devolução</button>
-                    </div>
-                </form>
-            </div>
-            
-            <div class="admin-card glass-effect">
-                <h2>Empréstimos em Aberto</h2>
-                <div style="margin-bottom: 1.5rem;">
-                    <input type="text" id="buscaEmprestimo" class="form-group" style="width: 100%; margin: 0; padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border-color);" placeholder="Buscar por nome do aluno ou título do livro...">
+                <h2>Gestão de Empréstimos
+                    <button class="btn btn-primary" onclick="abrirModalEmprestimo()" style="margin-left:auto; font-size: 0.9rem;">+ Novo Empréstimo</button>
+                </h2>
+                <div style="margin-bottom: 1rem;">
+                    <button class="btn btn-small btn-primary" onclick="carregarEmprestimos()">Todos</button>
+                    <button class="btn btn-small" onclick="carregarEmprestimos(true)" style="background:var(--bg-secondary); border:1px solid var(--border-color); color:#fff;">Somente Abertos</button>
                 </div>
                 <div class="table-responsive">
-                    <table id="tableEmprestimosAbertos">
+                    <table id="tabelaEmprestimos">
                         <thead>
                             <tr>
                                 <th>ID</th>
                                 <th>Aluno</th>
                                 <th>Livro</th>
-                                <th>Devolução Prevista</th>
+                                <th>Empréstimo</th>
+                                <th>Devolução</th>
+                                <th>Status / Multa</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Reservas Section -->
+        <section id="sec-reservas" class="content-section">
+            <div class="admin-card glass-effect">
+                <h2>Fila de Reservas por Livro</h2>
+                <div class="form-row" style="margin-bottom: 1rem;">
+                    <select id="selectLivroReserva" onchange="carregarFilaReserva()" style="padding: 0.8rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: rgba(0,0,0,0.2); color: #fff;">
+                        <option value="">Selecione um livro...</option>
+                    </select>
+                </div>
+                <div class="table-responsive">
+                    <table id="tabelaReservas">
+                        <thead>
+                            <tr>
+                                <th>Posição</th>
+                                <th>Aluno</th>
+                                <th>Data da Reserva</th>
                                 <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Auditoria Section -->
+        <section id="sec-auditoria" class="content-section">
+            <div class="admin-card glass-effect">
+                <h2>Logs de Auditoria</h2>
+                <div class="table-responsive">
+                    <table id="tabelaAuditoria">
+                        <thead>
+                            <tr>
+                                <th>Data/Hora</th>
+                                <th>Usuário</th>
                                 <th>Ação</th>
+                                <th>Entidade</th>
+                                <th>Detalhes</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <!-- Preenchido via JS -->
-                        </tbody>
+                        <tbody></tbody>
                     </table>
                 </div>
-            </div>
-
-            <div class="admin-card glass-effect" style="margin-top: 2rem;">
-                <h2>Histórico de Todos os Empréstimos</h2>
-                <div class="table-responsive">
-                    <table id="tableEmprestimosHistorico">
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Aluno</th>
-                                <th>Livro</th>
-                                <th>Data Empréstimo</th>
-                                <th>Devolução Efetiva</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Preenchido via JS -->
-                        </tbody>
-                    </table>
+                <div id="paginacaoAuditoria" style="display:flex; justify-content:space-between; margin-top:1rem; align-items:center;">
+                    <span id="infoPaginaAuditoria"></span>
+                    <div style="display:flex; gap:0.5rem;">
+                        <button class="btn btn-small" id="btnAuditoriaAnt">Anterior</button>
+                        <button class="btn btn-small" id="btnAuditoriaProx">Próxima</button>
+                    </div>
                 </div>
             </div>
         </section>
+
     </main>
 
-    <!-- Modal de Edição Genérico -->
-    <dialog id="editModal" class="glass-effect" style="border: none; border-radius: var(--radius-lg); padding: 2rem; max-width: 500px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.5); background: var(--card-bg); color: var(--text-color);">
-        <h2 id="editModalTitle" style="margin-bottom: 1rem;">Editar</h2>
-        <form id="editForm">
-            <div id="editModalFields">
-                <!-- Campos injetados via JS -->
+    <!-- Modais -->
+    <dialog id="modalLivro">
+        <h3 id="modalLivroTitulo" style="margin-bottom: 1.5rem;">Novo Livro</h3>
+        <form id="formLivro">
+            <input type="hidden" id="livroId">
+            <div class="form-group">
+                <label>ISBN</label>
+                <input type="text" id="livroIsbn" required>
             </div>
-            <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
-                <button type="button" class="btn btn-warning" id="closeEditModal" style="flex: 1;">Cancelar</button>
-                <button type="submit" class="btn btn-primary" style="flex: 1;">Salvar Alterações</button>
+            <div class="form-group">
+                <label>Título</label>
+                <input type="text" id="livroTitulo" required>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Autor</label>
+                    <select id="livroAutor" required></select>
+                </div>
+                <div class="form-group">
+                    <label>Editora</label>
+                    <input type="text" id="livroEditora">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Categoria</label>
+                    <input type="text" id="livroCategoria">
+                </div>
+                <div class="form-group">
+                    <label>Ano</label>
+                    <input type="number" id="livroAno" required>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Quantidade</label>
+                    <input type="number" id="livroQtd" min="0" required>
+                </div>
+                <div class="form-group">
+                    <label>Localização (Estante)</label>
+                    <input type="text" id="livroLocalizacao">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Descrição</label>
+                <textarea id="livroDescricao" rows="3" style="width:100%; padding: 0.85rem; border-radius: var(--radius-md); background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); color: #fff;"></textarea>
+            </div>
+            <div style="display:flex; gap:1rem; justify-content:flex-end; margin-top:1.5rem;">
+                <button type="button" class="btn" onclick="document.getElementById('modalLivro').close()">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Salvar</button>
             </div>
         </form>
     </dialog>
 
+    <dialog id="modalAutor">
+        <h3 id="modalAutorTitulo" style="margin-bottom: 1.5rem;">Novo Autor</h3>
+        <form id="formAutor">
+            <input type="hidden" id="autorId">
+            <div class="form-group">
+                <label>Nome do Autor</label>
+                <input type="text" id="autorNome" required>
+            </div>
+            <div class="form-group">
+                <label>Nacionalidade</label>
+                <input type="text" id="autorNac" required>
+            </div>
+            <div class="form-group">
+                <label>Data de Nascimento</label>
+                <input type="date" id="autorData" required>
+            </div>
+            <div style="display:flex; gap:1rem; justify-content:flex-end; margin-top:1.5rem;">
+                <button type="button" class="btn" onclick="document.getElementById('modalAutor').close()">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Salvar</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="modalAluno">
+        <h3 id="modalAlunoTitulo" style="margin-bottom: 1rem;">Novo Aluno</h3>
+        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.25rem;">💡 A conta de acesso do aluno será vinculada automaticamente com a senha padrão: <strong>Aluno@123</strong></p>
+        <form id="formAluno">
+            <input type="hidden" id="alunoId">
+            <div class="form-group">
+                <label>Nome do Aluno</label>
+                <input type="text" id="alunoNome" required placeholder="Ex: Maria Souza">
+            </div>
+            <div class="form-group">
+                <label>Matrícula</label>
+                <input type="text" id="alunoMatricula" required placeholder="Ex: 2026002">
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="alunoEmail" required placeholder="Ex: maria.souza@smartlib.com">
+            </div>
+            <div style="display:flex; gap:1rem; justify-content:flex-end; margin-top:1.5rem;">
+                <button type="button" class="btn" onclick="document.getElementById('modalAluno').close()">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Salvar</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="modalEmprestimo">
+        <h3 id="modalEmprestimoTitulo" style="margin-bottom: 1.5rem;">Novo Empréstimo</h3>
+        <form id="formEmprestimo">
+            <div class="form-group">
+                <label>Aluno</label>
+                <select id="emprestimoAluno" required></select>
+            </div>
+            <div class="form-group">
+                <label>Livro</label>
+                <select id="emprestimoLivro" required></select>
+            </div>
+            <div class="form-group">
+                <label>Data Prevista de Devolução</label>
+                <input type="date" id="emprestimoData" required>
+            </div>
+            <div style="display:flex; gap:1rem; justify-content:flex-end; margin-top:1.5rem;">
+                <button type="button" class="btn" onclick="document.getElementById('modalEmprestimo').close()">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Salvar</button>
+            </div>
+        </form>
+    </dialog>
     <script src="js/api.js"></script>
     <script src="js/auth.js"></script>
     <script src="js/admin.js"></script>

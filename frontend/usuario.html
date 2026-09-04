@@ -3,59 +3,110 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel do Aluno - Biblioteca</title>
+    <title>SmartLib - Área do Aluno</title>
     <link rel="stylesheet" href="css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
-<body>
-    <nav class="app-navbar">
-        <div class="navbar-brand">📚 Biblioteca <span style="color:var(--text-muted);font-weight:400;font-size:0.9rem">| Área do Aluno</span></div>
-        <div class="navbar-user">
-            <div>
-                <strong id="navbarUserName"></strong> <span id="navbarUserRole"></span>
-            </div>
-            <button class="btn btn-small" onclick="auth.logout()">Sair</button>
+<body class="app-layout">
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <h2>SmartLib</h2>
+            <span>Área do Aluno</span>
         </div>
-    </nav>
-
-    <main class="app-container">
-        <!-- Global Feedback Message -->
-        <div id="globalAlert" class="alert"></div>
-
-        <div class="tabs-nav">
-            <button class="tab-btn active" data-target="tab-catalogo">Catálogo de Livros</button>
-            <button class="tab-btn" data-target="tab-meus-emprestimos">Meus Empréstimos</button>
-        </div>
-
-        <!-- TAB: CATÁLOGO -->
-        <section id="tab-catalogo" class="tab-content active">
-            <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
-                <input type="text" id="buscaTitulo" class="form-group" style="margin: 0; padding: 0.75rem; flex: 1; border-radius: var(--radius-md); border: 1px solid var(--border-color);" placeholder="Buscar por título...">
-                <input type="text" id="buscaAutor" class="form-group" style="margin: 0; padding: 0.75rem; flex: 1; border-radius: var(--radius-md); border: 1px solid var(--border-color);" placeholder="Buscar por autor...">
-                <button id="btnBuscar" class="btn btn-primary">Buscar</button>
+        <nav class="sidebar-menu">
+            <div class="menu-item active" data-section="catalogo">Catálogo de Livros</div>
+            <div class="menu-item" data-section="meus-emprestimos">Meus Empréstimos</div>
+            <div class="menu-item" data-section="minhas-reservas">Minhas Reservas</div>
+            <div class="menu-item" data-section="minhas-notificacoes">Notificações <span id="badgeNotificacoes" class="badge badge-success" style="display:none; font-size:0.75rem; margin-left:5px;">0</span></div>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-info">
+                <strong id="userName">Usuário Logado</strong>
+                <span id="userRole">Aluno</span>
             </div>
+            <button class="btn btn-danger btn-block" onclick="auth.logout()">Sair</button>
+        </div>
+    </aside>
 
-            <div id="loader" class="loader"></div>
-            
-            <div id="livrosGrid" class="books-grid">
-                <!-- Preenchido via JS -->
+    <main class="main-content">
+        <div id="alertMsg" class="alert"></div>
+
+        <!-- Catálogo Section -->
+        <section id="sec-catalogo" class="content-section active">
+            <div class="admin-card glass-effect">
+                <h2>Catálogo de Livros</h2>
+                <div class="form-row">
+                    <input type="text" id="buscaCatalogo" placeholder="Buscar livros por título, autor ou categoria..." style="padding: 1rem; border-radius: var(--radius-md); border: 1px solid var(--border-color); background: rgba(0,0,0,0.2); color: #fff; width: 100%; font-size: 1rem;">
+                </div>
+                
+                <div id="loaderCatalogo" class="loader-container"><div class="loader"></div></div>
+                <div id="gridLivros" class="books-grid"></div>
+                
+                <div id="paginacaoCatalogo" style="display:flex; justify-content:space-between; margin-top:2rem; align-items:center;">
+                    <span id="infoPaginaCatalogo"></span>
+                    <div style="display:flex; gap:0.5rem;">
+                        <button class="btn btn-small" id="btnCatalogoAnt">Anterior</button>
+                        <button class="btn btn-small" id="btnCatalogoProx">Próxima</button>
+                    </div>
+                </div>
             </div>
         </section>
 
-        <!-- TAB: MEUS EMPRÉSTIMOS -->
-        <section id="tab-meus-emprestimos" class="tab-content">
+        <!-- Meus Empréstimos Section -->
+        <section id="sec-meus-emprestimos" class="content-section">
             <div class="admin-card glass-effect">
-                <h2>Meus Livros</h2>
-                
-                <div id="emprestimosList">
-                    <!-- Preenchido via JS -->
+                <h2>Meus Empréstimos</h2>
+                <div id="loaderEmprestimos" class="loader-container" style="display:none;"><div class="loader"></div></div>
+                <div class="table-responsive">
+                    <table id="tabelaMeusEmprestimos">
+                        <thead>
+                            <tr>
+                                <th>Livro</th>
+                                <th>Data Empréstimo</th>
+                                <th>Data Prevista</th>
+                                <th>Devolução</th>
+                                <th>Status</th>
+                                <th>Multa</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
                 </div>
+            </div>
+        </section>
+
+        <!-- Minhas Reservas Section -->
+        <section id="sec-minhas-reservas" class="content-section">
+            <div class="admin-card glass-effect">
+                <h2>Minhas Reservas</h2>
+                <div id="loaderReservas" class="loader-container" style="display:none;"><div class="loader"></div></div>
+                <div class="table-responsive">
+                    <table id="tabelaMinhasReservas">
+                        <thead>
+                            <tr>
+                                <th>Livro</th>
+                                <th>Data da Reserva</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Minhas Notificações Section -->
+        <section id="sec-minhas-notificacoes" class="content-section">
+            <div class="admin-card glass-effect">
+                <h2>Minhas Notificações</h2>
+                <div id="loaderNotificacoes" class="loader-container" style="display:none;"><div class="loader"></div></div>
+                <div id="listaNotificacoes" style="display:flex; flex-direction:column; gap:1rem; margin-top:1rem;"></div>
             </div>
         </section>
     </main>
 
-    <script src="js/auth.js"></script>
     <script src="js/api.js"></script>
+    <script src="js/auth.js"></script>
     <script src="js/usuario.js"></script>
 </body>
 </html>

@@ -5,9 +5,16 @@ services:
       - "8080:8080"
     environment:
       - ConnectionStrings__DefaultConnection=Host=database;Database=biblioteca;Username=user;Password=password
+      - Redis__ConnectionString=redis:6379
+      - Jwt__Secret=SmartLibSuperSecretKey2026!@#$%^&*()MinimoSegura32Chars
+      - Jwt__Issuer=SmartLib
+      - Jwt__Audience=SmartLibUsers
+      - Jwt__ExpirationMinutes=480
       - ASPNETCORE_ENVIRONMENT=Development
     depends_on:
       database:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
       - app-network
@@ -30,7 +37,19 @@ services:
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=password
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d biblioteca"]
+      test: [ "CMD-SHELL", "pg_isready -U user -d biblioteca" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - app-network
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 5s
       timeout: 5s
       retries: 5

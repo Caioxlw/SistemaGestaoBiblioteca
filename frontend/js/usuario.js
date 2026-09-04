@@ -1,119 +1,280 @@
-/**
- * usuario.js
- * Lógica do painel do aluno (visualização de catálogo e mock de empréstimos)
- */
+let pageCatalogo = 1;
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 1. Proteger Rota (Apenas aluno)
-    const session = auth.requireAuth('aluno');
-    auth.renderUserInfo();
+    // Verifica Auth (Somente Aluno)
+    const user = auth.checkAuth('Aluno');
+    if (!user) return;
 
-    // 2. Lógica das Abas
-    const tabBtns = document.querySelectorAll('.tab-btn');
-    const tabContents = document.querySelectorAll('.tab-content');
+    document.getElementById('userName').textContent = user.nome;
 
-    tabBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            tabBtns.forEach(b => b.classList.remove('active'));
-            tabContents.forEach(c => c.classList.remove('active'));
-            
-            btn.classList.add('active');
-            document.getElementById(btn.dataset.target).classList.add('active');
+    // Configuração do Menu Lateral
+    const menuItems = document.querySelectorAll('.menu-item');
+    const sections = document.querySelectorAll('.content-section');
+
+    menuItems.forEach(item => {
+        item.addEventListener('click', () => {
+            menuItems.forEach(i => i.classList.remove('active'));
+            sections.forEach(s => s.classList.remove('active'));
+
+            item.classList.add('active');
+            const sectionId = item.getAttribute('data-section');
+            document.getElementById(`sec-${sectionId}`).classList.add('active');
+
+            carregarSecao(sectionId);
         });
     });
 
-    // 3. Catálogo de Livros
-    const livrosGrid = document.getElementById('livrosGrid');
-    const loader = document.getElementById('loader');
+    // Eventos
+    document.getElementById('buscaCatalogo').addEventListener('input', debounce(() => {
+        pageCatalogo = 1;
+        carregarCatalogo();
+    }, 500));
+    
+    document.getElementById('btnCatalogoAnt').addEventListener('click', () => { if(pageCatalogo > 1) { pageCatalogo--; carregarCatalogo(); } });
+    document.getElementById('btnCatalogoProx').addEventListener('click', () => { pageCatalogo++; carregarCatalogo(); });
 
-    async function loadCatalogo(titulo = '', autor = '') {
-        livrosGrid.innerHTML = '';
-        loader.style.display = 'block';
-
-        try {
-            const livros = await api.getLivros(titulo, autor);
-            loader.style.display = 'none';
-
-            if (livros.length === 0) {
-                livrosGrid.innerHTML = '<p style="color: var(--text-muted); grid-column: 1 / -1; text-align: center;">Nenhum livro encontrado.</p>';
-                return;
-            }
-
-            livros.forEach(l => {
-                const isDisponivel = l.quantidade > 0;
-                const statusColor = isDisponivel ? 'var(--success)' : 'var(--danger)';
-                const statusText = isDisponivel ? `${l.quantidade} disponível(is)` : 'Esgotado';
-
-                livrosGrid.innerHTML += `
-                    <div class="book-card glass-effect">
-                        <div class="book-icon">📖</div>
-                        <div class="book-title">${l.titulo}</div>
-                        <div class="book-author">Por: ${l.nomeAutor}</div>
-                        <div style="font-size: 0.8rem; color: var(--text-muted)">ISBN: ${l.isbn}</div>
-                        <div class="book-stock" style="color: ${statusColor}">
-                            ${statusText}
-                        </div>
-                    </div>
-                `;
-            });
-        } catch (error) {
-            loader.style.display = 'none';
-            livrosGrid.innerHTML = `<p style="color: var(--danger);">Erro ao carregar catálogo: ${error.message}</p>`;
-        }
-    }
-
-    // Handlers de Busca
-    document.getElementById('btnBuscar').addEventListener('click', () => {
-        const titulo = document.getElementById('buscaTitulo').value;
-        const autor = document.getElementById('buscaAutor').value;
-        loadCatalogo(titulo, autor);
-    });
-
-    // 4. Meus Empréstimos (Real via API)
-    async function loadEmprestimos() {
-        const list = document.getElementById('emprestimosList');
-        list.innerHTML = '<div class="loader" style="display:block"></div>';
-        
-        try {
-            if (!session || !session.alunoId) {
-                list.innerHTML = '<p style="color: var(--text-muted);">Você precisa estar logado como um aluno com ID válido para ver empréstimos.</p>';
-                return;
-            }
-
-            const emprestimos = await api.getEmprestimosAluno(session.alunoId);
-            list.innerHTML = '';
-
-            if (emprestimos.length === 0) {
-                list.innerHTML = '<p style="color: var(--text-muted);">Você não possui empréstimos registrados.</p>';
-                return;
-            }
-
-            emprestimos.forEach(emp => {
-                let badgeClass = '';
-                if (emp.status === 'Devolvido') badgeClass = 'badge-success';
-                else if (emp.status === 'Ativo') badgeClass = 'badge-primary';
-                else if (emp.status === 'Atrasado') badgeClass = 'badge-danger';
-
-                const dateStr = new Date(emp.dataPrevistaDevolucao).toLocaleDateString('pt-BR');
-
-                list.innerHTML += `
-                    <div class="emprestimo-card">
-                        <div class="emprestimo-info">
-                            <h4>${emp.tituloLivro}</h4>
-                            <p>ID Empréstimo: ${emp.id} | Devolução Prevista: ${dateStr}</p>
-                        </div>
-                        <div>
-                            <span class="badge ${badgeClass}">${emp.status}</span>
-                        </div>
-                    </div>
-                `;
-            });
-        } catch(error) {
-            list.innerHTML = `<p style="color: var(--danger);">Erro ao carregar empréstimos: ${error.message}</p>`;
-        }
-    }
-
-    // Inicialização
-    loadCatalogo();
-    loadEmprestimos();
+    // Inicializa
+    carregarSecao('catalogo');
+    atualizarBadgeNotificacoes();
 });
+
+// Helper: Debounce
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => { clearTimeout(timeout); func(...args); };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Router
+function carregarSecao(secao) {
+    switch (secao) {
+        case 'catalogo': carregarCatalogo(); break;
+        case 'meus-emprestimos': carregarMeusEmprestimos(); break;
+        case 'minhas-reservas': carregarMinhasReservas(); break;
+        case 'minhas-notificacoes': carregarNotificacoes(); break;
+    }
+}
+
+// =================== CATÁLOGO ===================
+async function carregarCatalogo() {
+    document.getElementById('loaderCatalogo').style.display = 'flex';
+    document.getElementById('gridLivros').style.display = 'none';
+
+    try {
+        const termo = document.getElementById('buscaCatalogo').value;
+        const res = await api.get(`livros`, { termo: termo, page: pageCatalogo, pageSize: 8 });
+        
+        const grid = document.getElementById('gridLivros');
+        grid.innerHTML = '';
+        
+        res.itens.forEach(l => {
+            const esgotado = l.quantidade <= 0;
+            const estoqueBadge = esgotado ? 
+                '<span class="badge badge-danger">Esgotado</span>' : 
+                `<span class="badge badge-success">${l.quantidade} Disp.</span>`;
+            
+            const actionButton = esgotado ? 
+                `<button class="btn btn-small btn-warning" onclick="reservar(${l.id})">Reservar</button>` :
+                `<span style="font-size:0.8rem; color:var(--text-muted)">Vá à biblioteca</span>`;
+
+            grid.innerHTML += `
+                <div class="book-card glass-effect">
+                    <div class="book-header">
+                        <div class="book-icon">📚</div>
+                        ${estoqueBadge}
+                    </div>
+                    <div class="book-title">${l.titulo}</div>
+                    <div class="book-author">por ${l.nomeAutor}</div>
+                    <div class="book-desc" title="${l.descricao}">${l.descricao || 'Nenhuma descrição disponível.'}</div>
+                    <div class="book-meta">
+                        <span>${l.categoria}</span>
+                        <span>${l.anoPublicacao}</span>
+                        <span>${l.localizacao}</span>
+                    </div>
+                    <div class="book-footer">
+                        ${actionButton}
+                    </div>
+                </div>`;
+        });
+
+        document.getElementById('infoPaginaCatalogo').textContent = `Página ${res.paginaAtual} de ${res.totalPaginas}`;
+        document.getElementById('btnCatalogoAnt').disabled = res.paginaAtual <= 1;
+        document.getElementById('btnCatalogoProx').disabled = res.paginaAtual >= res.totalPaginas;
+
+    } catch (e) { 
+        mostrarAlerta(e.message, 'error'); 
+    } finally {
+        document.getElementById('loaderCatalogo').style.display = 'none';
+        document.getElementById('gridLivros').style.display = 'grid';
+    }
+}
+
+async function reservar(livroId) {
+    if(!confirm('Deseja entrar na fila de reserva para este livro?')) return;
+    try {
+        const user = auth.getUser();
+        await api.post('reservas', { alunoId: user.alunoId, livroId: livroId });
+        mostrarAlerta('Reserva efetuada com sucesso! Você foi adicionado à fila.', 'success');
+        carregarCatalogo();
+    } catch (e) {
+        mostrarAlerta(e.message, 'error');
+    }
+}
+
+// =================== MEUS EMPRÉSTIMOS ===================
+async function carregarMeusEmprestimos() {
+    document.getElementById('loaderEmprestimos').style.display = 'flex';
+    try {
+        const user = auth.getUser();
+        const emprestimos = await api.get(`emprestimos/aluno/${user.alunoId}`);
+        const tbody = document.querySelector('#tabelaMeusEmprestimos tbody');
+        tbody.innerHTML = '';
+        
+        if (emprestimos.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center">Nenhum empréstimo encontrado.</td></tr>';
+        } else {
+            emprestimos.forEach(e => {
+                const statusBadge = e.status === 'Ativo' ? 
+                    (e.diasAtraso > 0 ? `<span class="badge badge-danger">Atrasado</span>` : '<span class="badge badge-warning">Ativo</span>') : 
+                    '<span class="badge badge-success">Devolvido</span>';
+                
+                const multaStr = e.multa > 0 ? `<strong style="color:var(--danger)">R$ ${e.multa.toFixed(2)}</strong>` : '-';
+                const devolucaoStr = e.dataDevolucao ? new Date(e.dataDevolucao).toLocaleDateString() : '-';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${e.tituloLivro}</strong></td>
+                        <td>${new Date(e.dataEmprestimo).toLocaleDateString()}</td>
+                        <td>${new Date(e.dataPrevistaDevolucao).toLocaleDateString()}</td>
+                        <td>${devolucaoStr}</td>
+                        <td>${statusBadge}</td>
+                        <td>${multaStr}</td>
+                    </tr>`;
+            });
+        }
+    } catch (e) { 
+        mostrarAlerta(e.message, 'error'); 
+    } finally {
+        document.getElementById('loaderEmprestimos').style.display = 'none';
+    }
+}
+
+// =================== MINHAS RESERVAS ===================
+async function carregarMinhasReservas() {
+    document.getElementById('loaderReservas').style.display = 'flex';
+    try {
+        const user = auth.getUser();
+        const reservas = await api.get(`reservas/aluno/${user.alunoId}`);
+        const tbody = document.querySelector('#tabelaMinhasReservas tbody');
+        tbody.innerHTML = '';
+        
+        if (reservas.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" style="text-align:center">Nenhuma reserva encontrada.</td></tr>';
+        } else {
+            reservas.forEach(r => {
+                let badgeClass = 'badge-warning';
+                if(r.status === 'Atendida') badgeClass = 'badge-success';
+                if(r.status === 'Cancelada') badgeClass = 'badge-danger';
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td><strong>${r.tituloLivro}</strong></td>
+                        <td>${new Date(r.dataReserva).toLocaleString()}</td>
+                        <td><span class="badge ${badgeClass}">${r.status}</span></td>
+                    </tr>`;
+            });
+        }
+    } catch (e) { 
+        mostrarAlerta(e.message, 'error'); 
+    } finally {
+        document.getElementById('loaderReservas').style.display = 'none';
+    }
+}
+
+// Helper: Alertas
+function mostrarAlerta(msg, tipo) {
+    const alertDiv = document.getElementById('alertMsg');
+    alertDiv.textContent = msg;
+    alertDiv.className = `alert alert-${tipo}`;
+    alertDiv.style.display = 'block';
+    window.scrollTo(0, 0);
+    setTimeout(() => { alertDiv.style.display = 'none'; }, 5000);
+}
+
+// =================== NOTIFICAÇÕES ===================
+async function atualizarBadgeNotificacoes() {
+    const user = auth.getUser();
+    if (!user || !user.alunoId) return;
+
+    try {
+        const notificacoes = await api.get(`notificacoes/aluno/${user.alunoId}`);
+        const naoLidas = notificacoes ? notificacoes.filter(n => !n.lida).length : 0;
+        const badge = document.getElementById('badgeNotificacoes');
+        if (badge) {
+            if (naoLidas > 0) {
+                badge.textContent = naoLidas;
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+    } catch(e) {
+        console.warn('Não foi possível verificar notificações:', e);
+    }
+}
+
+async function carregarNotificacoes() {
+    const user = auth.getUser();
+    if (!user || !user.alunoId) return;
+
+    const loader = document.getElementById('loaderNotificacoes');
+    if (loader) loader.style.display = 'block';
+
+    try {
+        const notificacoes = await api.get(`notificacoes/aluno/${user.alunoId}`);
+        const container = document.getElementById('listaNotificacoes');
+        container.innerHTML = '';
+
+        await atualizarBadgeNotificacoes();
+
+        if (!notificacoes || notificacoes.length === 0) {
+            container.innerHTML = '<p style="color:var(--text-muted); padding: 1rem 0;">Você não possui notificações no momento.</p>';
+            return;
+        }
+
+        notificacoes.forEach(n => {
+            const dataStr = new Date(n.dataNotificacao).toLocaleString();
+            container.innerHTML += `
+                <div style="padding: 1.25rem; border-radius: var(--radius-md); background: rgba(255,255,255,0.04); border-left: 4px solid var(--primary); display:flex; justify-content:space-between; align-items:center; gap: 1rem;">
+                    <div>
+                        <div style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.35rem;">${dataStr} &bull; <span class="badge badge-primary">${n.tipo}</span></div>
+                        <div style="color: #fff; font-size: 0.95rem; line-height: 1.4;">${n.mensagem}</div>
+                    </div>
+                    <div>
+                        ${!n.lida 
+                            ? `<button class="btn btn-small btn-primary" onclick="marcarLida(${n.id})">Marcar como Lida</button>` 
+                            : '<span class="badge badge-success">Lida</span>'}
+                    </div>
+                </div>
+            `;
+        });
+    } catch (e) {
+        mostrarAlerta('Erro ao carregar notificações: ' + e.message, 'error');
+    } finally {
+        if (loader) loader.style.display = 'none';
+    }
+}
+
+async function marcarLida(id) {
+    const user = auth.getUser();
+    if (!user || !user.alunoId) return;
+    try {
+        await api.put(`notificacoes/${id}/lida?alunoId=${user.alunoId}`);
+        await carregarNotificacoes();
+    } catch(e) {
+        mostrarAlerta('Erro ao marcar notificação como lida: ' + e.message, 'error');
+    }
+}
