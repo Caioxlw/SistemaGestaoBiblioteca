@@ -10,7 +10,7 @@ namespace BibliotecaAPI.Controllers;
 
 [ApiController]
 [Route("api/emprestimos")]
-[Authorize(Roles = "Admin,Bibliotecario")]
+[Authorize]
 public class EmprestimosController : ControllerBase
 {
     private readonly IEmprestimoService _emprestimoService;
@@ -21,6 +21,7 @@ public class EmprestimosController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin,Bibliotecario")]
     public async Task<ActionResult<EmprestimoResponseDto>> Criar([FromBody] CriarEmprestimoDto dto)
     {
         var emprestimo = await _emprestimoService.CriarAsync(dto);
@@ -28,6 +29,7 @@ public class EmprestimosController : ControllerBase
     }
 
     [HttpGet]
+    [Authorize(Roles = "Admin,Bibliotecario")]
     public async Task<ActionResult<IEnumerable<EmprestimoResponseDto>>> ObterTodos()
     {
         var emprestimos = await _emprestimoService.ObterTodosAsync();
@@ -35,6 +37,7 @@ public class EmprestimosController : ControllerBase
     }
 
     [HttpGet("abertos")]
+    [Authorize(Roles = "Admin,Bibliotecario")]
     public async Task<ActionResult<IEnumerable<EmprestimoResponseDto>>> ObterAbertos()
     {
         var emprestimos = await _emprestimoService.ObterAbertosAsync();
@@ -61,6 +64,7 @@ public class EmprestimosController : ControllerBase
     /// Devolução via PUT /api/emprestimos/{id}/devolucao (utilizada no frontend).
     /// </summary>
     [HttpPut("{id:int}/devolucao")]
+    [Authorize(Roles = "Admin,Bibliotecario")]
     public async Task<ActionResult<EmprestimoResponseDto>> Devolucao(int id)
     {
         var emprestimo = await _emprestimoService.DevolverAsync(id);
@@ -71,6 +75,7 @@ public class EmprestimosController : ControllerBase
     /// Devolução via POST /api/emprestimos/devolver (conforme especificação dos requisitos).
     /// </summary>
     [HttpPost("devolver")]
+    [Authorize(Roles = "Admin,Bibliotecario")]
     public async Task<ActionResult<EmprestimoResponseDto>> Devolver([FromBody] DevolverEmprestimoDto? dto, [FromQuery] int? id)
     {
         int emprestimoId = dto?.EmprestimoId ?? id ?? 0;

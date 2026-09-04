@@ -527,9 +527,35 @@ async function carregarAlunos() {
     }
 }
 
+// Helper de Formatação de Data Brasileira segura contra Timezone Shift
+function formatarDataBR(dataStr) {
+    if (!dataStr) return '-';
+    if (typeof dataStr === 'string' && dataStr.includes('-')) {
+        const [datePart] = dataStr.split('T');
+        const partes = datePart.split('-');
+        if (partes.length === 3) {
+            const [ano, mes, dia] = partes;
+            return `${dia}/${mes}/${ano}`;
+        }
+    }
+    const d = new Date(dataStr);
+    return isNaN(d.getTime()) ? '-' : d.toLocaleDateString('pt-BR');
+}
+
 // =================== EMPRÉSTIMOS ===================
 async function abrirModalEmprestimo() {
     document.getElementById('formEmprestimo').reset();
+
+    const hoje = new Date();
+    const em14Dias = new Date();
+    em14Dias.setDate(hoje.getDate() + 14);
+
+    const inputInicio = document.getElementById('emprestimoDataInicio');
+    if (inputInicio) inputInicio.value = hoje.toISOString().split('T')[0];
+
+    const inputFim = document.getElementById('emprestimoData');
+    if (inputFim) inputFim.value = em14Dias.toISOString().split('T')[0];
+
     try {
         const alunos = await api.get('alunos');
         const selAluno = document.getElementById('emprestimoAluno');
@@ -550,10 +576,14 @@ async function abrirModalEmprestimo() {
 }
 
 async function salvarEmprestimo() {
+    const inputInicio = document.getElementById('emprestimoDataInicio');
+    const inputFim = document.getElementById('emprestimoData');
+
     const dto = {
         alunoId: parseInt(document.getElementById('emprestimoAluno').value),
         livroId: parseInt(document.getElementById('emprestimoLivro').value),
-        dataPrevistaDevolucao: document.getElementById('emprestimoData').value
+        dataEmprestimo: inputInicio && inputInicio.value ? inputInicio.value : null,
+        dataPrevistaDevolucao: inputFim ? inputFim.value : null
     };
 
     try {
@@ -576,14 +606,17 @@ async function carregarEmprestimos(apenasAbertos = false) {
                 '<span class="badge badge-success">Devolvido</span>';
             
             const multaStr = e.multa > 0 ? `<br><small style="color:var(--danger)">Multa: R$ ${e.multa.toFixed(2)}</small>` : '';
-            const devolucaoStr = e.dataDevolucao ? new Date(e.dataDevolucao).toLocaleDateString() : '-';
+            const devolucaoStr = e.dataDevolucao ? formatarDataBR(e.dataDevolucao) : '-';
+            const dataEmpStr = formatarDataBR(e.dataEmprestimo);
+            const dataPrevStr = formatarDataBR(e.dataPrevistaDevolucao);
 
             tbody.innerHTML += `
                 <tr>
                     <td>${e.id}</td>
                     <td>${e.nomeAluno}</td>
                     <td>${e.tituloLivro}</td>
-                    <td>${new Date(e.dataEmprestimo).toLocaleDateString()}</td>
+                    <td>${dataEmpStr}</td>
+                    <td>${dataPrevStr}</td>
                     <td>${devolucaoStr}</td>
                     <td>${statusBadge} ${multaStr}</td>
                     <td>
